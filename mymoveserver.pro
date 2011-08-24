@@ -18,7 +18,7 @@ MOBILITY += sensors
 TEMPLATE = app
 
 INCLUDEPATH += /usr/X11R6/include
-LIBS += -L/usr/X11R6/lib -lXtst -lX11
+LIBS += -lXi -lX11
 
 SOURCES += main.cpp \
     mymoveserver.cpp \

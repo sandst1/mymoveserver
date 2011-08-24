@@ -24,16 +24,6 @@
 #include "mymoveserver.h"
 #include "eventhandler.h"
 
-typedef struct
-{
-        int x, y;
-        Display *LocalDpy, *RecDpy;
-        XRecordContext rc;
-        XRecordRange* rr;
-        XRecordClientSpec rcs;
-} Priv;
-Priv priv;
-
 EventHandler::EventHandler(MyMoveServer* srv, QObject *parent) :
     QThread(parent)
 {
@@ -42,147 +32,143 @@ EventHandler::EventHandler(MyMoveServer* srv, QObject *parent) :
 
 MyMoveServer* EventHandler::m_server = NULL;
 
+/*
+switch (type) {
+    case ButtonPress:
+
+        m_server->touchPress(rootx, rooty);
+    break;
+
+    case ButtonRelease:
+        m_server->touchRelease(rootx, rooty);
+    break;
+
+    case MotionNotify:
+
+        m_server->touchMove(rootx, rooty);
+    break;
+}*/
+
+void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& points)
+{
+    qDebug("EventHandler::parseTouchPoints");
+    double *val = valuators.values;
+    int x = 0;
+    int y = 0;
+    for (int i = 0; i < valuators.mask_len * 8; i++)
+    {
+        if (XIMaskIsSet(valuators.mask, i) && (i % 5 == 0))
+        {
+            x = (int)(*val++);
+            y = (int)(*val);
+            qDebug("Pushing %d %d to points", x ,y);
+            points.push_back(QPoint(x,y));
+        }
+    }
+}
+
 void EventHandler::run()
 {
+    qDebug("EventHandler::run");
     XInitThreads();
-    int Major, Minor;
+    Display *display;
+    int xi_opcode, event, error;
 
-     // open the local display twice
-     Display * LocalDpy = localDisplay ();
-     Display * RecDpy = localDisplay ();
+    display = XOpenDisplay(NULL);
 
-     // get the screens too
-     int LocalScreen  = DefaultScreen ( LocalDpy );
-
-     qDebug() << "Server VendorRelease: " << VendorRelease(RecDpy) << endl;
-     // does the remote display have the Xrecord-extension?
-     if ( ! XRecordQueryVersion (RecDpy, &Major, &Minor ) ) {
-           // nope, extension not supported
-           qDebug() << ": XRecord extension not supported on server \""
-                    << DisplayString(RecDpy) << "\"" << endl;
-
-           // close the display and go away
-           XCloseDisplay ( RecDpy );
-           exit ( EXIT_FAILURE );
-     }
-
-     // print some information
-     qDebug() << "XRecord for server \"" << DisplayString(RecDpy) << "\" is version "
-              << Major << "." << Minor << "." << endl << endl;;
-
-     // start the main event loop
-     this->eventLoop ( LocalDpy, LocalScreen, RecDpy);
-
-     // we're done with the display
-     XCloseDisplay ( RecDpy );
-     XCloseDisplay ( LocalDpy );
-
-     qDebug() << "GestureHandler Thread exiting." << endl;
-}
-
-/****************************************************************************/
-/*! Connects to the local display. Returns the \c Display or \c 0 if
-    no display could be obtained.
-*/
-/****************************************************************************/
-Display * EventHandler::localDisplay () {
-
-  // open the display
-  Display * D = XOpenDisplay ( 0 );
-
-  // did we get it?
-  if ( ! D ) {
-        // nope, so show error and abort
-        qDebug() << "could not open display \"" << XDisplayName ( 0 )
-                 << "\", aborting." << endl;
-        exit ( EXIT_FAILURE );
-  }
-
-  // return the display
-  return D;
-}
-
-
-void EventHandler::eventCallback(XPointer priv, XRecordInterceptData *d)
-{
-    Priv *p=(Priv *) priv;
-    unsigned int *ud4, type, detail;
-    unsigned char *ud1, type1;
-    short *d2, rootx, rooty;
-
-    if (d->category!=XRecordFromServer)
+    if (!display)
     {
-        XRecordFreeData(d);
+        qDebug("Could not open display.");
         return;
     }
-    ud1=(unsigned char *)d->data;
-    d2=(short *)d->data;
-    ud4=(unsigned int *)d->data;
 
-    type1=ud1[0]&0x7F; type=type1;
-    rootx=d2[10];
-    rooty=d2[11];
+    if (!XQueryExtension(display, "XInputExtension",
+                         &xi_opcode, &event, &error))
+    {
+        qDebug("XInputExtension is not available.");
+        return;
+    }
 
-    switch (type) {
-        case ButtonPress:
+    XIEventMask mask;
+    XSelectInput(display, DefaultRootWindow(display), ExposureMask);
+    mask.deviceid = XIAllDevices;
+    mask.mask_len = sizeof(mask);
+    mask.mask = (unsigned char*)calloc(mask.mask_len, sizeof(char));
+    //XISetMask(mask.mask, XI_RawMotion);
+    XISetMask(mask.mask, XI_Motion);
+    XISetMask(mask.mask, XI_ButtonPress);
+    XISetMask(mask.mask, XI_ButtonRelease);
+    XISelectEvents(display, DefaultRootWindow(display), &mask, 1);
 
-            m_server->touchPress(rootx, rooty);
-        break;
+    free(mask.mask);
+    XMapWindow(display, DefaultRootWindow(display));
+    XSync(display, True);
 
-        case ButtonRelease:
-            m_server->touchRelease(rootx, rooty);
-        break;
+    while(1)
+    {
+        XEvent ev;
+        XGenericEventCookie *cookie = (XGenericEventCookie*)&ev.xcookie;
+        XNextEvent(display, (XEvent*)&ev);
 
-        case MotionNotify:
+        if (XGetEventData(display, cookie) &&
+            cookie->type == GenericEvent &&
+            cookie->extension == xi_opcode)
+        {
+            switch (cookie->evtype)
+            {
+                case XI_ButtonPress:
+                {
+                    XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
+                    qDebug("XI_ButtonPress, x: %.2f, y: %.2f", e->root_x, e->root_y);
+                    QList<QPoint> points;
+                    parseTouchPoints(e->valuators, points);
+                    m_server->touchPress(points);
+                    /*double *val = e->valuators.values;
+                    for (int i = 0; i < e->valuators.mask_len * 8; i++)
+                    {
+                         if (XIMaskIsSet(e->valuators.mask, i))
+                             qDebug("         %2d: %.2f", i, *val++);
+                    }*/
+                }
+                break;
+                case XI_ButtonRelease:
+                {
+                    XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
+                    qDebug("Button release, x: %.2f, y: %.2f", e->root_x, e->root_y);
+                    QList<QPoint> points;
+                    parseTouchPoints(e->valuators, points);
+                    m_server->touchRelease(points);
+                    /*double *val = e->valuators.values;
+                    for (int i = 0; i < e->valuators.mask_len * 8; i++)
+                    {
+                         if (XIMaskIsSet(e->valuators.mask, i))
+                             qDebug("         %2d: %.2f", i, *val++);
+                    }*/
+                }
+                break;
+                case XI_Motion:
+                {
+                    XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
+                    qDebug("XI_Motion, x: %.2f, y: %.2f", e->root_x, e->root_y);
+                    QList<QPoint> points;
+                    parseTouchPoints(e->valuators, points);
+                    m_server->touchMove(points);
+                    /*double *val = e->valuators.values;
+                    for (int i = 0; i < e->valuators.mask_len * 8; i++)
+                    {
+                           if (XIMaskIsSet(e->valuators.mask, i))
+                               qDebug("         %2d: %.2f", i, *val++);
+                    }*/
 
-            m_server->touchMove(rootx, rooty);
-        break;
-  }
+                }
+                break;
 
-  XRecordFreeData(d);
+                default:
+                break;
+            }
+        }
+        XFreeEventData(display, cookie);
+    }
+
+    qDebug() << "GestureHandler Thread exiting." << endl;
 }
-
-void EventHandler::eventLoop(Display * LocalDpy, int LocalScreen,
-                             Display * RecDpy) {
-
-    Window       Root, rRoot, rChild;
-    int rootx, rooty, winx, winy;
-    unsigned int mmask;
-    Bool ret;
-    Status sret;
-
-    // get the root window and set default target
-    Root = RootWindow ( LocalDpy, LocalScreen );
-
-    ret=XQueryPointer(LocalDpy, Root, &rRoot, &rChild, &rootx, &rooty, &winx, &winy, &mmask);
-    qDebug() << "XQueryPointer returned: " << ret << endl;
-    priv.rr=XRecordAllocRange();
-    if (!priv.rr)
-    {
-        qDebug() << "Could not alloc record range, aborting." << endl;
-        exit(EXIT_FAILURE);
-    }
-    priv.rr->device_events.first=KeyPress;
-    priv.rr->device_events.last=MotionNotify;
-    priv.rcs=XRecordAllClients;
-    priv.rc=XRecordCreateContext(RecDpy, 0, &priv.rcs, 1, &priv.rr, 1);
-    if (!priv.rc)
-    {
-        qDebug() << "Could not create a record context, aborting." << endl;
-        exit(EXIT_FAILURE);
-    }
-    priv.x=rootx;
-    priv.y=rooty;
-    priv.LocalDpy=LocalDpy;
-    priv.RecDpy=RecDpy;
-
-    qDebug("Entering XRecord loop...");
-
-    //if (!XRecordEnableContextAsync(RecDpy, priv.rc, GestureHandler::eventCallback, (XPointer) &priv))
-    if (!XRecordEnableContext(RecDpy, priv.rc, EventHandler::eventCallback, (XPointer) &priv))
-    {
-        qDebug() << "Could not enable the record context, aborting." << endl;
-        exit(EXIT_FAILURE);
-    }
-}
-

@@ -38,9 +38,9 @@ public:
 signals:
 
 public slots:
-    void touchPress(int x, int y);
-    void touchRelease(int x, int y);
-    void touchMove(int x, int y);
+    void touchPress(QList<QPoint> points);
+    void touchRelease(QList<QPoint> points);
+    void touchMove(QList<QPoint> points);
 
     void recordGesture(int x, int y, int w, int h);
     void saveGesture(QString command);

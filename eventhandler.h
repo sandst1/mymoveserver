@@ -22,15 +22,9 @@
 #ifndef EVENTHANDLER_H
 #define EVENTHANDLER_H
 
+#include <QPoint>
 #include <QThread>
-
-#include <X11/Xlibint.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/cursorfont.h>
-#include <X11/keysymdef.h>
-#include <X11/keysym.h>
-#include <X11/extensions/record.h>
+#include <X11/extensions/XInput2.h>
 
 class MyMoveServer;
 class EventHandler : public QThread
@@ -46,11 +40,7 @@ signals:
 public slots:
 
 private:
-    Display* localDisplay ();
-    static void eventCallback(XPointer priv, XRecordInterceptData *d);
-    void eventLoop (Display * LocalDpy, int LocalScreen,
-                    Display * RecDpy);
-
+    void parseTouchPoints(XIValuatorState valuators, QList<QPoint>& points);
     static MyMoveServer* m_server;
 
 };

@@ -77,24 +77,30 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     system("mkdir -p /home/user/MyDocs/moves");
 }
 
-void MyMoveServer::touchPress(int x, int y)
+void MyMoveServer::touchPress(QList<QPoint> points)
 {
-    qDebug("touchPress: x %d y %d", x, y);
+    //qDebug("touchPress: x %d y %d", x, y);
     switch (m_state)
     {
         case OBSERVING:
             qDebug("Observing");
             m_gesture.clear();
-            m_gesture.append(QPoint(x,y));
+            foreach (const QPoint& point, points)
+            {
+                m_gesture.append(point);
+            }
         break;
 
         case RECORDING:
             qDebug("Recording");
-            if (m_recBox.contains(x,y,true))
+            foreach (const QPoint& point, points)
             {
-                qDebug("Press inside the record box");
-                m_gesture.clear();
-                m_gesture.append(QPoint(x,y));
+                if (m_recBox.contains(point, true))
+                {
+                    qDebug("Press inside the record box");
+                    m_gesture.clear();
+                    m_gesture.append(point);
+                }
             }
         break;
 
@@ -110,14 +116,17 @@ void MyMoveServer::touchPress(int x, int y)
     }
 }
 
-void MyMoveServer::touchRelease(int x, int y)
+void MyMoveServer::touchRelease(QList<QPoint> points)
 {
-    qDebug("MyMoveServer::touchRelease");
+    //qDebug("MyMoveServer::touchRelease");
     switch (m_state)
     {
         case OBSERVING:
             qDebug("Observing");
-            m_gesture.append(QPoint(x,y));
+            foreach (const QPoint& point, points)
+            {
+                m_gesture.append(point);
+            }
             qDebug("trying to recognize the gesture");
             m_state = RECOGNIZING;
             recognizeGesture();
@@ -125,10 +134,13 @@ void MyMoveServer::touchRelease(int x, int y)
 
         case RECORDING:
             qDebug("Recording");
-            if (m_recBox.contains(x,y,true))
+            foreach (const QPoint& point, points)
             {
-                qDebug("Release inside the record box");
-                m_gesture.append(QPoint(x,y));
+                if (m_recBox.contains(point, true))
+                {
+                    qDebug("Release inside the record box");
+                    m_gesture.append(point);
+                }
             }
         break;
 
@@ -145,22 +157,30 @@ void MyMoveServer::touchRelease(int x, int y)
 
 }
 
-void MyMoveServer::touchMove(int x, int y)
+void MyMoveServer::touchMove(QList<QPoint> points)
 {
-    qDebug("touchMove: x %d y %d", x, y);
+    //qDebug("touchMove: x %d y %d", x, y);
     switch (m_state)
     {
         case OBSERVING:
             qDebug("Observing");
-            m_gesture.append(QPoint(x,y));
+
+            foreach (const QPoint& point, points)
+            {
+                m_gesture.append(point);
+            }
         break;
 
         case RECORDING:
             qDebug("Recording");
-            if (m_recBox.contains(x,y,true))
+
+            foreach (const QPoint& point, points)
             {
-                qDebug("Moving inside the record box");
-                m_gesture.append(QPoint(x,y));
+                if (m_recBox.contains(point, true))
+                {
+                    qDebug("Moving inside the record box");
+                    m_gesture.append(point);
+                }
             }
         break;
 
