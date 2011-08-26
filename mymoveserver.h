@@ -28,6 +28,8 @@
 
 QTM_USE_NAMESPACE
 
+#define MAX_FINGERS 6
+
 class MyMoveServer : public QObject
 {
     Q_OBJECT
@@ -49,12 +51,27 @@ public slots:
 
     void orientationChanged();
 private:
+    struct Gesture
+    {
+        QList<QPoint> data;
+        QString command;
+    };
+
+    struct CentralPoint
+    {
+        QPoint point;
+        int index;
+    };
+
+    void clearGesture();
+
     void rotateToPortrait(QList<QPoint>& gesture);
-    void normalizeGesture(QList<QPoint>& gesture);
+    QPoint normalizeGesture(QList<QPoint>& gesture);
     QPoint getCentralPoint(const QList<QPoint>& list, int& width, int& height);
     void loadGestures();
-    void recognizeGesture();
+    void recognizeGesture();    
     double pearson(const QList<QPoint>& gx, const QList<QPoint>& gy);
+    void formGestureVector();
 
     enum State {
         IDLE,
@@ -66,13 +83,10 @@ private:
 
     State m_state;
     EventHandler m_eh;
-    QList<QPoint> m_gesture;
+    QList<QPoint> m_gesture[MAX_FINGERS];
+    QList<QPoint> m_gestVect;
 
-    struct Gesture
-    {
-        QList<QPoint> data;
-        QString command;
-    };
+    static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
     QList<Gesture> m_knownGestures;
     QRect m_recBox;

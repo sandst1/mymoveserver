@@ -31,6 +31,7 @@
 #define PEARSON_THRESHOLD 0.75
 #define GESTURES_PATH "/home/user/MyDocs/moves"
 #define NAME_FILTER "mymove*"
+#define MAX_GESTURE_LENGTH_DIFF 0.4
 
 /*
 qDebug("MyMoveServer::stopObserving");
@@ -49,6 +50,7 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_state(IDLE),
     m_eh(this),
     m_gesture(),
+    m_gestVect(),
     m_recBox(),
     m_knownGestures(),
     m_orientation(),
@@ -77,6 +79,15 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     system("mkdir -p /home/user/MyDocs/moves");
 }
 
+void MyMoveServer::clearGesture()
+{
+    for (int i = 0; i < MAX_FINGERS; i++)
+    {
+        m_gesture[i].clear();
+    }
+    m_gestVect.clear();
+}
+
 void MyMoveServer::touchPress(QList<QPoint> points)
 {
     //qDebug("touchPress: x %d y %d", x, y);
@@ -84,22 +95,24 @@ void MyMoveServer::touchPress(QList<QPoint> points)
     {
         case OBSERVING:
             qDebug("Observing");
-            m_gesture.clear();
-            foreach (const QPoint& point, points)
+            clearGesture();
+            //foreach (const QPoint& point, points)
+            for (int i = 0; i < points.length(); i++)
             {
-                m_gesture.append(point);
+                m_gesture[i].append(points[i]);
             }
         break;
 
         case RECORDING:
             qDebug("Recording");
-            foreach (const QPoint& point, points)
+            //foreach (const QPoint& point, points)
+            for (int i = 0; i < points.length(); i++)
             {
-                if (m_recBox.contains(point, true))
+                if (m_recBox.contains(points[i], true))
                 {
                     qDebug("Press inside the record box");
-                    m_gesture.clear();
-                    m_gesture.append(point);
+                    clearGesture();
+                    m_gesture[i].append(points[i]);
                 }
             }
         break;
@@ -123,9 +136,10 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
     {
         case OBSERVING:
             qDebug("Observing");
-            foreach (const QPoint& point, points)
+            //foreach (const QPoint& point, points)
+            for (int i = 0; i < points.length(); i++)
             {
-                m_gesture.append(point);
+                m_gesture[i].append(points[i]);
             }
             qDebug("trying to recognize the gesture");
             m_state = RECOGNIZING;
@@ -134,12 +148,13 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
 
         case RECORDING:
             qDebug("Recording");
-            foreach (const QPoint& point, points)
+            //foreach (const QPoint& point, points)
+            for (int i = 0; i < points.length(); i++)
             {
-                if (m_recBox.contains(point, true))
+                if (m_recBox.contains(points[i], true))
                 {
                     qDebug("Release inside the record box");
-                    m_gesture.append(point);
+                    m_gesture[i].append(points[i]);
                 }
             }
         break;
@@ -165,21 +180,23 @@ void MyMoveServer::touchMove(QList<QPoint> points)
         case OBSERVING:
             qDebug("Observing");
 
-            foreach (const QPoint& point, points)
+            //foreach (const QPoint& point, points)
+            for (int i = 0; i < points.length(); i++)
             {
-                m_gesture.append(point);
+                m_gesture[i].append(points[i]);
             }
         break;
 
         case RECORDING:
             qDebug("Recording");
 
-            foreach (const QPoint& point, points)
+            //foreach (const QPoint& point, points)
+            for (int i = 0; i < points.length(); i++)
             {
-                if (m_recBox.contains(point, true))
+                if (m_recBox.contains(points[i], true))
                 {
                     qDebug("Moving inside the record box");
-                    m_gesture.append(point);
+                    m_gesture[i].append(points[i]);
                 }
             }
         break;
@@ -206,6 +223,11 @@ void MyMoveServer::recordGesture(int x, int y, int w, int h)
     }
 }
 
+bool MyMoveServer::CentralPointLessThan(const CentralPoint& a, const CentralPoint& b)
+{
+    return ((a.point.x() < b.point.x()) && (a.point.y() < b.point.y()));
+}
+
 void MyMoveServer::saveGesture(QString command)
 {
     qDebug("MyMoveServer::saveGesture");
@@ -217,17 +239,19 @@ void MyMoveServer::saveGesture(QString command)
     if (m_state == RECORDING)
     {
         m_state = SAVING;
-        if (m_gesture.length() > 0)
+        if (m_gesture[0].length() > 0)
         {
             QFile gestFile(QString(GESTURES_PATH)+"/mymove"+QString::number(newgesturenum));
             gestFile.open(QIODevice::WriteOnly);
             QTextStream gstream(&gestFile);
 
             gstream << command << endl;
-            normalizeGesture(m_gesture);
-            for (int i = 0; i < m_gesture.length(); i++)
+
+            formGestureVector();
+
+            for (int i = 0; i < m_gestVect.length(); i++)
             {
-                gstream << m_gesture[i].x() << " " << m_gesture[i].y() << endl;
+                gstream << m_gestVect[i].x() << " " << m_gestVect[i].y() << endl;
             }
             gestFile.close();
         }
@@ -279,7 +303,7 @@ void MyMoveServer::rotateToPortrait(QList<QPoint>& gesture)
     }
 }
 
-void MyMoveServer::normalizeGesture(QList<QPoint>& gesture)
+QPoint MyMoveServer::normalizeGesture(QList<QPoint>& gesture)
 {
     // Normalize the gesture
     int gw = 0;
@@ -305,6 +329,7 @@ void MyMoveServer::normalizeGesture(QList<QPoint>& gesture)
 
         qDebug("%d %d", gesture[i].x(), gesture[i].y());
     }
+    return cp;
 }
 
 QPoint MyMoveServer::getCentralPoint(const QList<QPoint>& list, int& width, int& height)
@@ -371,22 +396,23 @@ void MyMoveServer::loadGestures()
 
 void MyMoveServer::recognizeGesture()
 {
-    normalizeGesture(m_gesture);
+    formGestureVector();
+
     QString cmdToRun;
     double maxP = 0.0;
 
     for (int i = 0; i < m_knownGestures.length(); i++)
     {
         QList<QPoint> gesture = m_knownGestures[i].data;
-        qDebug("Gesture length: %d, known gesture length: %d", m_gesture.length(), gesture.length());
+        qDebug("Gesture length: %d, known gesture length: %d", m_gestVect.length(), gesture.length());
         // Eliminate too short or too long gesture
-        if (abs(gesture.length()-m_gesture.length()) > 0.3*gesture.length())
+        if (abs(gesture.length()-m_gestVect.length()) > MAX_GESTURE_LENGTH_DIFF*gesture.length())
         {
             qDebug("Gesture length invalid, continuing with another gesture");
             continue;
         }
 
-        double p = pearson(m_gesture, gesture);
+        double p = pearson(m_gestVect, gesture);
 
         if ( p >= PEARSON_THRESHOLD && p > maxP )
         {
@@ -449,4 +475,42 @@ double MyMoveServer::pearson(const QList<QPoint>& gx, const QList<QPoint>& gy)
 
     qDebug("pearson: %.2f", p);
     return p;
+}
+
+void MyMoveServer::formGestureVector()
+{
+    qDebug("MyMoveServer::formGestureVector");
+    m_gestVect.clear();
+    QList<CentralPoint> centralPoints;
+    for (int i = 0; i < MAX_FINGERS; i++)
+    {
+        if (m_gesture[i].length() > 0)
+        {
+            CentralPoint cp;
+            cp.index = i;
+            cp.point = normalizeGesture(m_gesture[i]);
+            centralPoints.push_back(cp);
+        }
+    }
+
+    qDebug("centralPoints before");
+    foreach(const CentralPoint& central, centralPoints)
+    {
+        qDebug("%d %d", central.point.x(), central.point.y());
+    }
+
+    // Order the gestures
+    qSort(centralPoints.begin(), centralPoints.end(), CentralPointLessThan);
+
+    qDebug("centralPoints after");
+    foreach(const CentralPoint& central, centralPoints)
+    {
+        qDebug("%d %d", central.point.x(), central.point.y());
+    }
+
+    // Push the finger data to m_gestVect in the order of the central points
+    for (int i = 0; i < centralPoints.length(); i++)
+    {
+        m_gestVect.append(m_gesture[centralPoints[i].index]);
+    }
 }

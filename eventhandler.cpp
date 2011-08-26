@@ -32,23 +32,6 @@ EventHandler::EventHandler(MyMoveServer* srv, QObject *parent) :
 
 MyMoveServer* EventHandler::m_server = NULL;
 
-/*
-switch (type) {
-    case ButtonPress:
-
-        m_server->touchPress(rootx, rooty);
-    break;
-
-    case ButtonRelease:
-        m_server->touchRelease(rootx, rooty);
-    break;
-
-    case MotionNotify:
-
-        m_server->touchMove(rootx, rooty);
-    break;
-}*/
-
 void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& points)
 {
     qDebug("EventHandler::parseTouchPoints");
