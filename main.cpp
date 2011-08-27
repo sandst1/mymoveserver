@@ -19,12 +19,26 @@
 #include <QtCore/QCoreApplication>
 
 #include "mymoveserver.h"
+#include <QStringList>
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    MyMoveServer* mms = new MyMoveServer(&a);
+#ifdef ANN_TRAINING
+    QStringList args = a.arguments();
+    if (args.count() != 2)
+    {
+        qDebug("No gesture number given, defaulting to 0");
+        MyMoveServer::setGestureNumber(0);
+    }
+    else
+    {
+        MyMoveServer::setGestureNumber(args.at(1).toInt());
+    }
 
+#endif
+
+    MyMoveServer* mms = new MyMoveServer(&a);
     return a.exec();
 }

@@ -20,6 +20,8 @@ TEMPLATE = app
 INCLUDEPATH += /usr/X11R6/include
 LIBS += -lXi -lX11
 
+DEFINES += ANN_TRAINING
+
 SOURCES += main.cpp \
     mymoveserver.cpp \
     eventhandler.cpp

@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDebug>
 #include <QDir>
@@ -32,22 +33,29 @@
 #define GESTURES_PATH "/home/user/MyDocs/moves"
 #define NAME_FILTER "mymove*"
 #define MAX_GESTURE_LENGTH_DIFF 0.4
+#define MAX_GESTURE_LENGTH 500
 
-/*
-qDebug("MyMoveServer::stopObserving");
-//    XRecordGetContext (Display *display, XRecordContext context, XRecordState **state_return)
-XRecordContext ctx;
-XRecordState* state;
-qDebug("opening display 0 and disabling context");
-Display* d = XOpenDisplay(0);
-XRecordGetContext(d, ctx, &state);
-XRecordDisableContext(d, ctx);
-qDebug("MyMoveServer::stopObserving OUT");
-*/
+#ifdef ANN_TRAINING
+int MyMoveServer::m_gestureNum = -1;
+
+void MyMoveServer::setGestureNumber(int number)
+{
+    qDebug("Setting gesture number to %d", number);
+    m_gestureNum = number;
+}
+#define SAMPLES_PER_GESTURE 20
+
+#endif
+
 
 MyMoveServer::MyMoveServer(QObject *parent) :
     QObject(parent),
+#ifndef ANN_TRAINING
     m_state(IDLE),
+#else
+    m_state(COLLECTING_DATA),
+    m_gestureFile(),
+#endif
     m_eh(this),
     m_gesture(),
     m_gestVect(),
@@ -67,14 +75,36 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     {
         m_portrait = false;
     }
+#ifndef ANN_TRAINING
     qDebug("MyMoveServer, portrait: %d", m_portrait);
-
+#else
+    qDebug("Starting in the data collecting mode");
+    QString fname("/home/user/MyDocs/gesturedata");
+    fname.append(QVariant(m_gestureNum).toString());
+    m_gestureFile.setFileName(fname);
+    m_gestureCount = 0;
+#endif
     connect(&m_orientation, SIGNAL(readingChanged()), this, SLOT(orientationChanged()));
+
+    qRegisterMetaType<QPoint>("QPoint");
+    qRegisterMetaType<QList<QPoint> >("QList<QPoint>");
+
+    connect(&m_eh, SIGNAL(touchPress(QList<QPoint>)), this, SLOT(touchPress(QList<QPoint>)));
+    connect(&m_eh, SIGNAL(touchMove(QList<QPoint>)), this, SLOT(touchMove(QList<QPoint>)));
+    connect(&m_eh, SIGNAL(touchRelease(QList<QPoint>)), this, SLOT(touchRelease(QList<QPoint>)));
 
     QDBusConnection bus = QDBusConnection::sessionBus();
     bus.registerObject("/sandst1/mymoves", this, QDBusConnection::ExportAllSlots);
     bus.registerService("org.sandst1.mymoves");
     m_eh.start();
+
+    m_gestVect.reserve(MAX_GESTURE_LENGTH);
+
+    QPoint zeroPoint(0,0);
+    for (int i = 0; i < MAX_GESTURE_LENGTH; i++)
+    {
+        m_padVect.push_back(zeroPoint);
+    }
 
     system("mkdir -p /home/user/MyDocs/moves");
 }
@@ -89,14 +119,12 @@ void MyMoveServer::clearGesture()
 }
 
 void MyMoveServer::touchPress(QList<QPoint> points)
-{
-    //qDebug("touchPress: x %d y %d", x, y);
+{   
     switch (m_state)
     {
         case OBSERVING:
             qDebug("Observing");
             clearGesture();
-            //foreach (const QPoint& point, points)
             for (int i = 0; i < points.length(); i++)
             {
                 m_gesture[i].append(points[i]);
@@ -105,7 +133,6 @@ void MyMoveServer::touchPress(QList<QPoint> points)
 
         case RECORDING:
             qDebug("Recording");
-            //foreach (const QPoint& point, points)
             for (int i = 0; i < points.length(); i++)
             {
                 if (m_recBox.contains(points[i], true))
@@ -114,6 +141,14 @@ void MyMoveServer::touchPress(QList<QPoint> points)
                     clearGesture();
                     m_gesture[i].append(points[i]);
                 }
+            }
+        break;
+
+        case COLLECTING_DATA:
+            clearGesture();
+            for (int i = 0; i < points.length(); i++)
+            {
+                m_gesture[i].append(points[i]);
             }
         break;
 
@@ -130,13 +165,11 @@ void MyMoveServer::touchPress(QList<QPoint> points)
 }
 
 void MyMoveServer::touchRelease(QList<QPoint> points)
-{
-    //qDebug("MyMoveServer::touchRelease");
+{ 
     switch (m_state)
     {
         case OBSERVING:
             qDebug("Observing");
-            //foreach (const QPoint& point, points)
             for (int i = 0; i < points.length(); i++)
             {
                 m_gesture[i].append(points[i]);
@@ -148,7 +181,6 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
 
         case RECORDING:
             qDebug("Recording");
-            //foreach (const QPoint& point, points)
             for (int i = 0; i < points.length(); i++)
             {
                 if (m_recBox.contains(points[i], true))
@@ -158,6 +190,19 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
                 }
             }
         break;
+
+#ifdef ANN_TRAINING
+        case COLLECTING_DATA:
+            for (int i = 0; i < points.length(); i++)
+            {
+                m_gesture[i].append(points[i]);
+            }
+            qDebug("trying to recognize the gesture");
+            m_state = RECOGNIZING;
+            // Collect the data
+            saveData();
+        break;
+#endif
 
         case IDLE:
         case SAVING:
@@ -174,13 +219,10 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
 
 void MyMoveServer::touchMove(QList<QPoint> points)
 {
-    //qDebug("touchMove: x %d y %d", x, y);
     switch (m_state)
     {
         case OBSERVING:
             qDebug("Observing");
-
-            //foreach (const QPoint& point, points)
             for (int i = 0; i < points.length(); i++)
             {
                 m_gesture[i].append(points[i]);
@@ -190,7 +232,6 @@ void MyMoveServer::touchMove(QList<QPoint> points)
         case RECORDING:
             qDebug("Recording");
 
-            //foreach (const QPoint& point, points)
             for (int i = 0; i < points.length(); i++)
             {
                 if (m_recBox.contains(points[i], true))
@@ -198,6 +239,13 @@ void MyMoveServer::touchMove(QList<QPoint> points)
                     qDebug("Moving inside the record box");
                     m_gesture[i].append(points[i]);
                 }
+            }
+        break;
+
+        case COLLECTING_DATA:
+            for (int i = 0; i < points.length(); i++)
+            {
+                m_gesture[i].append(points[i]);
             }
         break;
 
@@ -214,7 +262,7 @@ void MyMoveServer::touchMove(QList<QPoint> points)
 }
 
 void MyMoveServer::recordGesture(int x, int y, int w, int h)
-{
+{    
     qDebug("MyMoveServer::recordGesture x: %d y: %d w: %d h: %d", x, y, w, h);
     if (m_state == IDLE || m_state == OBSERVING)
     {
@@ -262,7 +310,7 @@ void MyMoveServer::saveGesture(QString command)
 
 void MyMoveServer::observeGestures()
 {    
-    qDebug("MyMoveServer::observeGestures");    
+    qDebug("MyMoveServer::observeGestures");
     if (m_state == IDLE)
     {
         loadGestures();
@@ -396,6 +444,7 @@ void MyMoveServer::loadGestures()
 
 void MyMoveServer::recognizeGesture()
 {
+    qDebug("MyMoveServer::recognizeGesture");
     formGestureVector();
 
     QString cmdToRun;
@@ -422,6 +471,7 @@ void MyMoveServer::recognizeGesture()
     }
     system(cmdToRun.toLatin1());
 
+    qDebug("Going back to OBSERVING");
     m_state = OBSERVING;
 }
 
@@ -513,4 +563,43 @@ void MyMoveServer::formGestureVector()
     {
         m_gestVect.append(m_gesture[centralPoints[i].index]);
     }
+
+    if (m_gestVect.length() < MAX_GESTURE_LENGTH)
+    {
+        qDebug("Padding gesture vector to %d", MAX_GESTURE_LENGTH);
+        int padding = MAX_GESTURE_LENGTH - m_gestVect.length();
+        m_gestVect.append(m_padVect.mid(0, padding));
+        qDebug("Current length %d", m_gestVect.length());
+    }
+    else if (m_gestVect.length() > MAX_GESTURE_LENGTH)
+    {
+        qDebug("Capping gesture vector to %d", MAX_GESTURE_LENGTH);
+        m_gestVect = m_gestVect.mid(0, MAX_GESTURE_LENGTH);
+        qDebug("Current length %d", m_gestVect.length());
+    }
+
+}
+
+void MyMoveServer::saveData()
+{
+    formGestureVector();
+    m_gestureFile.open(QIODevice::Append);
+    QTextStream stream(&m_gestureFile);
+    for (int i = 0; i < m_gestVect.length(); i++)
+    {
+        stream << m_gestVect[i].x() << " " << m_gestVect[i].y() << " ";
+    }
+    stream << endl << m_gestureNum << endl;
+    m_gestureFile.close();
+
+    m_gestureCount++;
+    qDebug("Gesture %d: %d gestures saved so far", m_gestureNum, m_gestureCount);
+    if (m_gestureCount == SAMPLES_PER_GESTURE)
+    {
+        qDebug("Quitting this round");
+        m_eh.terminate();
+        m_eh.wait();
+        QCoreApplication::exit(0);
+    }
+    m_state = COLLECTING_DATA;
 }

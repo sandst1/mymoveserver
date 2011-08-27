@@ -34,7 +34,9 @@ MyMoveServer* EventHandler::m_server = NULL;
 
 void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& points)
 {
+#ifndef ANN_TRAINING
     qDebug("EventHandler::parseTouchPoints");
+#endif
     double *val = valuators.values;
     int x = 0;
     int y = 0;
@@ -44,7 +46,9 @@ void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& po
         {
             x = (int)(*val++);
             y = (int)(*val);
+#ifndef ANN_TRAINING
             qDebug("Pushing %d %d to points", x ,y);
+#endif
             points.push_back(QPoint(x,y));
         }
     }
@@ -77,7 +81,6 @@ void EventHandler::run()
     mask.deviceid = XIAllDevices;
     mask.mask_len = sizeof(mask);
     mask.mask = (unsigned char*)calloc(mask.mask_len, sizeof(char));
-    //XISetMask(mask.mask, XI_RawMotion);
     XISetMask(mask.mask, XI_Motion);
     XISetMask(mask.mask, XI_ButtonPress);
     XISetMask(mask.mask, XI_ButtonRelease);
@@ -102,47 +105,37 @@ void EventHandler::run()
                 case XI_ButtonPress:
                 {
                     XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
+#ifndef ANN_TRAINING
                     qDebug("XI_ButtonPress, x: %.2f, y: %.2f", e->root_x, e->root_y);
+#endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
-                    m_server->touchPress(points);
-                    /*double *val = e->valuators.values;
-                    for (int i = 0; i < e->valuators.mask_len * 8; i++)
-                    {
-                         if (XIMaskIsSet(e->valuators.mask, i))
-                             qDebug("         %2d: %.2f", i, *val++);
-                    }*/
+                    //m_server->touchPress(points);
+                    emit this->touchPress(points);
                 }
                 break;
                 case XI_ButtonRelease:
                 {
                     XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
+#ifndef ANN_TRAINING
                     qDebug("Button release, x: %.2f, y: %.2f", e->root_x, e->root_y);
+#endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
-                    m_server->touchRelease(points);
-                    /*double *val = e->valuators.values;
-                    for (int i = 0; i < e->valuators.mask_len * 8; i++)
-                    {
-                         if (XIMaskIsSet(e->valuators.mask, i))
-                             qDebug("         %2d: %.2f", i, *val++);
-                    }*/
-                }
+                    //m_server->touchRelease(points);
+                    emit this->touchRelease(points);
+                 }
                 break;
                 case XI_Motion:
                 {
                     XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
+#ifndef ANN_TRAINING
                     qDebug("XI_Motion, x: %.2f, y: %.2f", e->root_x, e->root_y);
+#endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
-                    m_server->touchMove(points);
-                    /*double *val = e->valuators.values;
-                    for (int i = 0; i < e->valuators.mask_len * 8; i++)
-                    {
-                           if (XIMaskIsSet(e->valuators.mask, i))
-                               qDebug("         %2d: %.2f", i, *val++);
-                    }*/
-
+                    //m_server->touchMove(points);
+                    emit this->touchMove(points);
                 }
                 break;
 

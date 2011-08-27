@@ -20,6 +20,7 @@
 #define MYMOVESERVER_H
 
 #include <QOrientationSensor>
+#include <QFile>
 #include <QList>
 #include <QObject>
 #include <QPoint>
@@ -36,6 +37,9 @@ class MyMoveServer : public QObject
     Q_CLASSINFO("D-Bus Interface", "org.sandst1.mymoves")
 public:
     explicit MyMoveServer(QObject *parent = 0);
+#ifdef ANN_TRAINING
+    static void setGestureNumber(int number);
+#endif
 
 signals:
 
@@ -78,13 +82,15 @@ private:
         OBSERVING,
         RECOGNIZING,
         RECORDING,
-        SAVING
+        SAVING,
+        COLLECTING_DATA
     };
 
     State m_state;
     EventHandler m_eh;
     QList<QPoint> m_gesture[MAX_FINGERS];
     QList<QPoint> m_gestVect;
+    QList<QPoint> m_padVect;
 
     static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
@@ -93,6 +99,13 @@ private:
 
     QOrientationSensor m_orientation;
     bool m_portrait;
+
+#ifdef ANN_TRAINING
+    static int m_gestureNum;
+    QFile m_gestureFile;
+    int m_gestureCount;
+    void saveData();
+#endif
 };
 
 #endif // MYMOVESERVER_H

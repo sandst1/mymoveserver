@@ -36,6 +36,9 @@ public:
     void run();
 
 signals:
+    void touchPress(QList<QPoint> points);
+    void touchRelease(QList<QPoint> points);
+    void touchMove(QList<QPoint> points);
 
 public slots:
 
