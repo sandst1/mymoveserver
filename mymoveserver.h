@@ -31,7 +31,7 @@
 QTM_USE_NAMESPACE
 
 #define MAX_FINGERS 6
-#define MAX_GESTURE_LENGTH 250
+#define MAX_GESTURE_LENGTH 75
 
 class MyMoveServer : public QObject
 {
