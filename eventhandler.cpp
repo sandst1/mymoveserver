@@ -24,6 +24,8 @@
 #include "mymoveserver.h"
 #include "eventhandler.h"
 
+#define TARGET_SPEED 2.50
+
 EventHandler::EventHandler(MyMoveServer* srv, QObject *parent) :
     QThread(parent)
 {
@@ -34,9 +36,6 @@ MyMoveServer* EventHandler::m_server = NULL;
 
 void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& points)
 {
-#ifndef ANN_TRAINING
-    qDebug("EventHandler::parseTouchPoints");
-#endif
     double *val = valuators.values;
     int x = 0;
     int y = 0;
@@ -46,9 +45,6 @@ void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& po
         {
             x = (int)(*val++);
             y = (int)(*val);
-#ifndef ANN_TRAINING
-            qDebug("Pushing %d %d to points", x ,y);
-#endif
             points.push_back(QPoint(x,y));
         }
     }
@@ -110,7 +106,11 @@ void EventHandler::run()
 #endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
-                    //m_server->touchPress(points);
+
+                    m_targetDist = 0.0;
+                    m_distance = 0.0;
+                    m_time.restart();
+
                     emit this->touchPress(points);
                 }
                 break;
@@ -122,6 +122,8 @@ void EventHandler::run()
 #endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
+                    //qDebug("%d ms since previous event", m_time.elapsed());
+
                     //m_server->touchRelease(points);
                     emit this->touchRelease(points);
                  }
@@ -134,8 +136,18 @@ void EventHandler::run()
 #endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
-                    //m_server->touchMove(points);
-                    emit this->touchMove(points);
+
+                    m_targetDist = m_time.elapsed()*TARGET_SPEED;
+                    m_curPoint = QPoint(e->root_x, e->root_y);
+
+                    m_distance += QPointF(m_curPoint-m_prevPoint).manhattanLength();
+                    m_prevPoint = m_curPoint;
+                    if ( m_distance >= m_targetDist )
+                    {
+                        emit this->touchMove(points);
+                        m_distance = 0;
+                    }
+                    m_time.restart();
                 }
                 break;
 

@@ -24,6 +24,7 @@
 
 #include <QPoint>
 #include <QThread>
+#include <QTime>
 #include <X11/extensions/XInput2.h>
 
 class MyMoveServer;
@@ -45,6 +46,12 @@ public slots:
 private:
     void parseTouchPoints(XIValuatorState valuators, QList<QPoint>& points);
     static MyMoveServer* m_server;
+
+    QTime m_time;
+    QPoint m_curPoint;
+    QPoint m_prevPoint;
+    double m_targetDist;
+    double m_distance;
 
 };
 

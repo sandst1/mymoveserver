@@ -33,7 +33,6 @@
 #define GESTURES_PATH "/home/user/MyDocs/moves"
 #define NAME_FILTER "mymove*"
 #define MAX_GESTURE_LENGTH_DIFF 0.4
-#define MAX_GESTURE_LENGTH 500
 
 #ifdef ANN_TRAINING
 int MyMoveServer::m_gestureNum = -1;
@@ -43,10 +42,10 @@ void MyMoveServer::setGestureNumber(int number)
     qDebug("Setting gesture number to %d", number);
     m_gestureNum = number;
 }
-#define SAMPLES_PER_GESTURE 20
+#define SAMPLES_PER_GESTURE 5
+#define GESTURES_TO_COLLECT 22
 
 #endif
-
 
 MyMoveServer::MyMoveServer(QObject *parent) :
     QObject(parent),
@@ -62,7 +61,9 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_recBox(),
     m_knownGestures(),
     m_orientation(),
-    m_portrait(true)
+    m_portrait(true),
+    m_gestureNN(NULL),
+    m_gestArray()
 {
     m_orientation.start();
 
@@ -106,7 +107,14 @@ MyMoveServer::MyMoveServer(QObject *parent) :
         m_padVect.push_back(zeroPoint);
     }
 
+    m_gestureNN = fann_create_from_file("/home/user/MyDocs/mymoves_gestures.net");
+
     system("mkdir -p /home/user/MyDocs/moves");
+}
+
+MyMoveServer::~MyMoveServer()
+{
+    fann_destroy(m_gestureNN);
 }
 
 void MyMoveServer::clearGesture()
@@ -176,7 +184,8 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
             }
             qDebug("trying to recognize the gesture");
             m_state = RECOGNIZING;
-            recognizeGesture();
+            //recognizeGesture();
+            recognizeWithNN();
         break;
 
         case RECORDING:
@@ -543,26 +552,16 @@ void MyMoveServer::formGestureVector()
         }
     }
 
-    qDebug("centralPoints before");
-    foreach(const CentralPoint& central, centralPoints)
-    {
-        qDebug("%d %d", central.point.x(), central.point.y());
-    }
-
     // Order the gestures
     qSort(centralPoints.begin(), centralPoints.end(), CentralPointLessThan);
-
-    qDebug("centralPoints after");
-    foreach(const CentralPoint& central, centralPoints)
-    {
-        qDebug("%d %d", central.point.x(), central.point.y());
-    }
 
     // Push the finger data to m_gestVect in the order of the central points
     for (int i = 0; i < centralPoints.length(); i++)
     {
         m_gestVect.append(m_gesture[centralPoints[i].index]);
     }
+
+    qDebug("Gest vector length: %d", m_gestVect.length());
 
     if (m_gestVect.length() < MAX_GESTURE_LENGTH)
     {
@@ -577,9 +576,36 @@ void MyMoveServer::formGestureVector()
         m_gestVect = m_gestVect.mid(0, MAX_GESTURE_LENGTH);
         qDebug("Current length %d", m_gestVect.length());
     }
-
 }
 
+void MyMoveServer::recognizeWithNN()
+{
+    qDebug("MyMoveServer::recognizeWithNN");
+    formGestureVector();
+    for (int i = 0; i < MAX_GESTURE_LENGTH*2; i++)
+    {
+        if (i%2)
+        {
+            m_gestArray[i] = m_gestVect[i/2].y();
+        }
+        else
+        {
+            m_gestArray[i] = m_gestVect[i/2].x();
+        }
+        //qDebug("Gest value %.2f", m_gestArray[i]);
+    }
+
+    fann_type* results = fann_run(m_gestureNN, m_gestArray);
+    for (int i = 0; i < 22; i++)
+    {
+        qDebug("Gesture %d, result: %.2f\n", i, results[i]);
+    }
+    m_state = OBSERVING;
+    qDebug("MyMoveServer::recognizeWithNN out");
+}
+
+
+#ifdef ANN_TRAINING
 void MyMoveServer::saveData()
 {
     formGestureVector();
@@ -589,7 +615,21 @@ void MyMoveServer::saveData()
     {
         stream << m_gestVect[i].x() << " " << m_gestVect[i].y() << " ";
     }
-    stream << endl << m_gestureNum << endl;
+    //stream << endl << m_gestureNum << endl;
+    int zerosBefore = m_gestureNum;
+    int zerosAfter = 21 - m_gestureNum;
+    stream << endl;
+    for (int i = 0; i < zerosBefore; i++)
+    {
+        stream << "0 ";
+    }
+    stream << 1 << " ";
+    for (int i = 0; i < zerosAfter; i++)
+    {
+        stream << "0 ";
+    }
+    stream << endl;
+
     m_gestureFile.close();
 
     m_gestureCount++;
@@ -603,3 +643,4 @@ void MyMoveServer::saveData()
     }
     m_state = COLLECTING_DATA;
 }
+#endif

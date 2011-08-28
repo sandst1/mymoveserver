@@ -26,10 +26,12 @@
 #include <QPoint>
 #include <QRect>
 #include "eventhandler.h"
+#include <floatfann.h>
 
 QTM_USE_NAMESPACE
 
 #define MAX_FINGERS 6
+#define MAX_GESTURE_LENGTH 250
 
 class MyMoveServer : public QObject
 {
@@ -37,6 +39,8 @@ class MyMoveServer : public QObject
     Q_CLASSINFO("D-Bus Interface", "org.sandst1.mymoves")
 public:
     explicit MyMoveServer(QObject *parent = 0);
+    ~MyMoveServer();
+
 #ifdef ANN_TRAINING
     static void setGestureNumber(int number);
 #endif
@@ -76,6 +80,8 @@ private:
     void recognizeGesture();    
     double pearson(const QList<QPoint>& gx, const QList<QPoint>& gy);
     void formGestureVector();
+    void recognizeWithNN();
+
 
     enum State {
         IDLE,
@@ -98,7 +104,10 @@ private:
     QRect m_recBox;
 
     QOrientationSensor m_orientation;
-    bool m_portrait;
+    bool m_portrait;    
+
+    struct fann *m_gestureNN;
+    fann_type m_gestArray[MAX_GESTURE_LENGTH*2];
 
 #ifdef ANN_TRAINING
     static int m_gestureNum;
