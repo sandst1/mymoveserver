@@ -34,6 +34,10 @@ unix:!symbian:!maemo5 {
     INSTALLS += target
 }
 
+nnetwork.path = /opt/mymoveserver
+nnetwork.files = data/mymoves_gestures.net
+INSTALLS += nnetwork
+
 OTHER_FILES += \
     qtc_packaging/debian_harmattan/rules \
     qtc_packaging/debian_harmattan/README \
@@ -45,3 +49,6 @@ OTHER_FILES += \
 HEADERS += \
     mymoveserver.h \
     eventhandler.h
+
+RESOURCES += \
+    resources.qrc

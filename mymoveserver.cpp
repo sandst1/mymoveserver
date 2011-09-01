@@ -107,9 +107,9 @@ MyMoveServer::MyMoveServer(QObject *parent) :
         m_padVect.push_back(zeroPoint);
     }
 
-    m_gestureNN = fann_create_from_file("/home/user/MyDocs/mymoves_gestures.net");
+    m_gestureNN = fann_create_from_file("/opt/mymoveserver/mymoves_gestures.net");
 
-    system("mkdir -p /home/user/MyDocs/moves");
+    system("mkdir -p /home/user/MyDocs/.moves");
 }
 
 MyMoveServer::~MyMoveServer()

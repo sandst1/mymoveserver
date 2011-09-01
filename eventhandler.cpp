@@ -24,7 +24,7 @@
 #include "mymoveserver.h"
 #include "eventhandler.h"
 
-#define TARGET_SPEED 3.50
+#define TARGET_SPEED 4.5
 
 EventHandler::EventHandler(MyMoveServer* srv, QObject *parent) :
     QThread(parent)
