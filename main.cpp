@@ -27,14 +27,18 @@ int main(int argc, char *argv[])
 
 #ifdef ANN_TRAINING
     QStringList args = a.arguments();
-    if (args.count() != 2)
+    if (args.count() != 4)
     {
-        qDebug("No gesture number given, defaulting to 0");
+        qDebug("defaulting to 0. please use ./prog <gestnum> <gest amount> <samples_per_gesture>");
         MyMoveServer::setGestureNumber(0);
+        MyMoveServer::setGestureAmount(0);
+        MyMoveServer::setGestureSamples(0);
     }
     else
     {
         MyMoveServer::setGestureNumber(args.at(1).toInt());
+        MyMoveServer::setGestureAmount(args.at(2).toInt());
+        MyMoveServer::setGestureSamples(args.at(3).toInt());
     }
 
 #endif

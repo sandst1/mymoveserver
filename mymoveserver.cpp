@@ -36,14 +36,27 @@
 
 #ifdef ANN_TRAINING
 int MyMoveServer::m_gestureNum = -1;
+int MyMoveServer::m_gestureAmount = -1;
+int MyMoveServer::m_gestureSamples = -1;
 
 void MyMoveServer::setGestureNumber(int number)
 {
     qDebug("Setting gesture number to %d", number);
     m_gestureNum = number;
 }
-#define SAMPLES_PER_GESTURE 5
-#define GESTURES_TO_COLLECT 22
+
+void MyMoveServer::setGestureAmount(int number)
+{
+    qDebug("Setting gesture amount to %d", number);
+    m_gestureAmount = number;
+}
+
+void MyMoveServer::setGestureSamples(int number)
+{
+    qDebug("Setting gesture samples to %d", number);
+    m_gestureSamples = number;
+
+}
 
 #endif
 
@@ -62,7 +75,9 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_knownGestures(),
     m_orientation(),
     m_portrait(true),
-    m_gestureNN(NULL),
+    m_gestureNN1(NULL),
+    m_gestureNN2(NULL),
+    m_gestureNN3(NULL),
     m_gestArray()
 {
     m_orientation.start();
@@ -107,14 +122,18 @@ MyMoveServer::MyMoveServer(QObject *parent) :
         m_padVect.push_back(zeroPoint);
     }
 
-    m_gestureNN = fann_create_from_file("/opt/mymoveserver/mymoves_gestures.net");
+    m_gestureNN1 = fann_create_from_file("/opt/mymoveserver/mymoves_nn1.net");
+    m_gestureNN2 = fann_create_from_file("/opt/mymoveserver/mymoves_nn2.net");
+    m_gestureNN3 = fann_create_from_file("/opt/mymoveserver/mymoves_nn3.net");
 
     system("mkdir -p /home/user/MyDocs/.moves");
 }
 
 MyMoveServer::~MyMoveServer()
 {
-    fann_destroy(m_gestureNN);
+    fann_destroy(m_gestureNN1);
+    fann_destroy(m_gestureNN2);
+    fann_destroy(m_gestureNN3);
 }
 
 void MyMoveServer::clearGesture()
@@ -124,6 +143,7 @@ void MyMoveServer::clearGesture()
         m_gesture[i].clear();
     }
     m_gestVect.clear();
+    m_fingerAmount = 0;
 }
 
 void MyMoveServer::touchPress(QList<QPoint> points)
@@ -134,7 +154,7 @@ void MyMoveServer::touchPress(QList<QPoint> points)
             qDebug("Observing");
             clearGesture();
             for (int i = 0; i < points.length(); i++)
-            {
+            {                
                 m_gesture[i].append(points[i]);
             }
         break;
@@ -232,6 +252,10 @@ void MyMoveServer::touchMove(QList<QPoint> points)
     {
         case OBSERVING:
             qDebug("Observing");
+            if (points.length() > m_fingerAmount)
+            {
+                m_fingerAmount = points.length();
+            }
             for (int i = 0; i < points.length(); i++)
             {
                 m_gesture[i].append(points[i]);
@@ -595,11 +619,38 @@ void MyMoveServer::recognizeWithNN()
         //qDebug("Gest value %.2f", m_gestArray[i]);
     }
 
-    fann_type* results = fann_run(m_gestureNN, m_gestArray);
-    for (int i = 0; i < 22; i++)
+
+    struct fann* network = NULL;
+    switch(m_fingerAmount)
     {
-        qDebug("Gesture %d, result: %.2f\n", i, results[i]);
+        case 1:
+            network = m_gestureNN1;
+        break;
+
+        case 2:
+            network = m_gestureNN2;
+        break;
+
+        case 3:
+            network = m_gestureNN3;
+        break;
+
+        default:
+            qDebug("Amount of fingers not supported, returning");
+            m_state = OBSERVING;
+            return;
+        break;
     }
+
+    qDebug("Using neural network %d", m_fingerAmount);
+    fann_type* results = fann_run(network, m_gestArray);
+    int outputs = fann_get_num_output(network);
+
+    for (int i = 0; i < outputs; i++)
+    {
+        qDebug("Gesture %d, result: %.2f", i, results[i]);
+    }
+
     m_state = OBSERVING;
     qDebug("MyMoveServer::recognizeWithNN out");
 }
@@ -617,7 +668,7 @@ void MyMoveServer::saveData()
     }
     //stream << endl << m_gestureNum << endl;
     int zerosBefore = m_gestureNum;
-    int zerosAfter = 21 - m_gestureNum;
+    int zerosAfter = m_gestureAmount - 1 - m_gestureNum;
     stream << endl;
     for (int i = 0; i < zerosBefore; i++)
     {
@@ -634,7 +685,7 @@ void MyMoveServer::saveData()
 
     m_gestureCount++;
     qDebug("Gesture %d: %d gestures saved so far", m_gestureNum, m_gestureCount);
-    if (m_gestureCount == SAMPLES_PER_GESTURE)
+    if (m_gestureCount == m_gestureSamples)
     {
         qDebug("Quitting this round");
         m_eh.terminate();

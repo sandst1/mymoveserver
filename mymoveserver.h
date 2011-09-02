@@ -43,6 +43,8 @@ public:
 
 #ifdef ANN_TRAINING
     static void setGestureNumber(int number);
+    static void setGestureAmount(int number);
+    static void setGestureSamples(int number);
 #endif
 
 signals:
@@ -95,6 +97,8 @@ private:
     State m_state;
     EventHandler m_eh;
     QList<QPoint> m_gesture[MAX_FINGERS];
+    int m_fingerAmount;
+
     QList<QPoint> m_gestVect;
     QList<QPoint> m_padVect;
 
@@ -106,11 +110,15 @@ private:
     QOrientationSensor m_orientation;
     bool m_portrait;    
 
-    struct fann *m_gestureNN;
+    struct fann *m_gestureNN1;
+    struct fann *m_gestureNN2;
+    struct fann *m_gestureNN3;
     fann_type m_gestArray[MAX_GESTURE_LENGTH*2];
 
 #ifdef ANN_TRAINING
     static int m_gestureNum;
+    static int m_gestureAmount;
+    static int m_gestureSamples;
     QFile m_gestureFile;
     int m_gestureCount;
     void saveData();

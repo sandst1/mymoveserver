@@ -35,7 +35,7 @@ unix:!symbian:!maemo5 {
 }
 
 nnetwork.path = /opt/mymoveserver
-nnetwork.files = data/mymoves_gestures.net
+nnetwork.files = data/mymoves_nn1.net data/mymoves_nn2.net data/mymoves_nn3.net
 INSTALLS += nnetwork
 
 OTHER_FILES += \
