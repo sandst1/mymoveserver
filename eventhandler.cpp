@@ -45,7 +45,12 @@ void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& po
         {
             x = (int)(*val++);
             y = (int)(*val);
+            qDebug("x %d y %d", x, y);
             points.push_back(QPoint(x,y));
+        }
+        else
+        {
+            val++;
         }
     }
 }
