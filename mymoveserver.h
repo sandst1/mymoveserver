@@ -63,7 +63,7 @@ public slots:
 private:
     struct Gesture
     {
-        QList<QPoint> data;
+        //QList<QPoint> data;
         QString command;
     };
 
@@ -104,7 +104,10 @@ private:
 
     static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
-    QList<Gesture> m_knownGestures;
+    //QList<Gesture> m_knownGestures;
+    QList<Gesture> m_gesturesSingle;
+    QList<Gesture> m_gesturesDouble;
+    QList<Gesture> m_gesturesTriple;
     QRect m_recBox;
 
     QOrientationSensor m_orientation;

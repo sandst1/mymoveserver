@@ -34,6 +34,8 @@
 #define NAME_FILTER "mymove*"
 #define MAX_GESTURE_LENGTH_DIFF 0.4
 
+#define GESTURES_CONF_FILE "/home/user/MyDocs/.moves/mymoves.conf"
+
 #ifdef ANN_TRAINING
 int MyMoveServer::m_gestureNum = -1;
 int MyMoveServer::m_gestureAmount = -1;
@@ -72,7 +74,10 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_gesture(),
     m_gestVect(),
     m_recBox(),
-    m_knownGestures(),
+    //m_knownGestures(),
+    m_gesturesSingle(),
+    m_gesturesDouble(),
+    m_gesturesTriple(),
     m_orientation(),
     m_portrait(true),
     m_gestureNN1(NULL),
@@ -439,6 +444,66 @@ QPoint MyMoveServer::getCentralPoint(const QList<QPoint>& list, int& width, int&
 
 void MyMoveServer::loadGestures()
 {
+    m_gesturesSingle.clear();
+    m_gesturesDouble.clear();
+    m_gesturesTriple.clear();
+    QFile gfile(GESTURES_CONF_FILE);
+    gfile.open(QIODevice::ReadOnly);
+    QTextStream stream(&gfile);
+    QString line = stream.readLine();
+    do
+    {
+        QStringList data = line.split("###");
+        QString id;
+        QString app;
+        QString command;
+        bool reserved = false;
+        qDebug("### Gesture ###");
+        for (int i = 0; i < data.size(); i++)
+        {
+            qDebug("data %d %s", i, data.at(i).toLatin1().data());
+        }
+
+        id = data.at(0);
+        app = data.at(1);
+        command = data.at(2);
+        if (app.size() > 0)
+        {
+            reserved = true;
+        }
+        qDebug("### Gesture END ###");
+
+        Gesture gest;
+        gest.command = command;
+        if (id.at(0) == 'd')
+        {
+            qDebug() << "Appending to double gestures: " << id << ", " << command;
+            m_gesturesDouble.append(gest);
+        }
+        else if (id.at(0) == 't')
+        {
+            qDebug() << "Appending to triple gestures: " << id << ", " << command;
+            m_gesturesTriple.append(gest);
+        }
+        else
+        {
+            qDebug() << "Appending to single gestures: " << id << ", " << command;
+            m_gesturesSingle.append(gest);
+        }
+
+        /*GestureItem* item = new GestureItem(id, image, this);
+        item->setApp(app);
+        item->setCommand(command);
+        item->setReserved(reserved);
+        this->appendRow(item);*/
+
+        line = stream.readLine();
+    } while (!line.isEmpty());
+}
+
+/*
+void MyMoveServer::loadGestures()
+{
     m_knownGestures.clear();
     qDebug("MyMoveServer::loadGestures");
     QDir gdir(GESTURES_PATH);
@@ -474,7 +539,9 @@ void MyMoveServer::loadGestures()
         m_knownGestures.append(gesture);
     }
 }
+*/
 
+/*
 void MyMoveServer::recognizeGesture()
 {
     qDebug("MyMoveServer::recognizeGesture");
@@ -507,6 +574,7 @@ void MyMoveServer::recognizeGesture()
     qDebug("Going back to OBSERVING");
     m_state = OBSERVING;
 }
+*/
 
 double MyMoveServer::pearson(const QList<QPoint>& gx, const QList<QPoint>& gy)
 {
@@ -621,18 +689,22 @@ void MyMoveServer::recognizeWithNN()
 
 
     struct fann* network = NULL;
+    QList<Gesture>* gestureList = NULL;
     switch(m_fingerAmount)
     {
         case 1:
             network = m_gestureNN1;
+            gestureList = &m_gesturesSingle;
         break;
 
         case 2:
             network = m_gestureNN2;
+            gestureList = &m_gesturesDouble;
         break;
 
         case 3:
             network = m_gestureNN3;
+            gestureList = &m_gesturesTriple;
         break;
 
         default:
@@ -646,9 +718,25 @@ void MyMoveServer::recognizeWithNN()
     fann_type* results = fann_run(network, m_gestArray);
     int outputs = fann_get_num_output(network);
 
+    int matchingIdx = -1;
+    int matches = 0;
     for (int i = 0; i < outputs; i++)
     {
+        if (results[i] >= 0.95)
+        {
+            matches++;
+            matchingIdx = i;
+        }
         qDebug("Gesture %d, result: %.2f", i, results[i]);
+    }
+
+    if (matches == 1)
+    {
+        qDebug("Found a single match: %d", matchingIdx);
+        if (matchingIdx < gestureList->size())
+        {
+            qDebug() << "Command to execute: " << gestureList->at(matchingIdx).command;
+        }
     }
 
     m_state = OBSERVING;
