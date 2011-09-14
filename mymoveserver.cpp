@@ -730,16 +730,23 @@ void MyMoveServer::recognizeWithNN()
         qDebug("Gesture %d, result: %.2f", i, results[i]);
     }
 
+    QString command("");
     if (matches == 1)
     {
         qDebug("Found a single match: %d", matchingIdx);
         if (matchingIdx < gestureList->size())
         {
             qDebug() << "Command to execute: " << gestureList->at(matchingIdx).command;
+            command = gestureList->at(matchingIdx).command;
         }
     }
 
     m_state = OBSERVING;
+    if (command.length() > 0)
+    {
+        command = command + " &";
+        system(command.toLatin1());
+    }
     qDebug("MyMoveServer::recognizeWithNN out");
 }
 
