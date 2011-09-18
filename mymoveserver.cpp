@@ -34,6 +34,9 @@
 #define NAME_FILTER "mymove*"
 #define MAX_GESTURE_LENGTH_DIFF 0.4
 
+#define GESTURE_RECOGNITION_THRESHOLD 0.90
+#define FALSE_RECOGNITION_THRESHOLD 0.10
+
 #define GESTURES_CONF_FILE "/home/user/MyDocs/.moves/mymoves.conf"
 
 #ifdef ANN_TRAINING
@@ -207,10 +210,14 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
             {
                 m_gesture[i].append(points[i]);
             }
-            qDebug("trying to recognize the gesture");
-            m_state = RECOGNIZING;
-            //recognizeGesture();
-            recognizeWithNN();
+            // Recognition currently supported in portrait mode only
+            if (m_portrait)
+            {
+                qDebug("trying to recognize the gesture");
+                m_state = RECOGNIZING;
+                //recognizeGesture();
+                recognizeWithNN();
+            }
         break;
 
         case RECORDING:
@@ -720,18 +727,23 @@ void MyMoveServer::recognizeWithNN()
 
     int matchingIdx = -1;
     int matches = 0;
+    bool falseRecognitions = false;
     for (int i = 0; i < outputs; i++)
     {
-        if (results[i] >= 0.95)
+        if (results[i] >= GESTURE_RECOGNITION_THRESHOLD)
         {
             matches++;
             matchingIdx = i;
+        }
+        else if (results[i] >= FALSE_RECOGNITION_THRESHOLD)
+        {
+            falseRecognitions = true;
         }
         qDebug("Gesture %d, result: %.2f", i, results[i]);
     }
 
     QString command("");
-    if (matches == 1)
+    if (matches == 1 && !falseRecognitions)
     {
         qDebug("Found a single match: %d", matchingIdx);
         if (matchingIdx < gestureList->size())
