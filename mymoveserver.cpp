@@ -35,7 +35,7 @@
 #define MAX_GESTURE_LENGTH_DIFF 0.4
 
 #define GESTURE_RECOGNITION_THRESHOLD 0.90
-#define FALSE_RECOGNITION_THRESHOLD 0.10
+#define FALSE_RECOGNITION_THRESHOLD 0.20
 
 #define GESTURES_CONF_FILE "/home/user/MyDocs/.moves/mymoves.conf"
 
@@ -83,7 +83,7 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_gesturesTriple(),
     m_orientation(),
     m_portrait(true),
-    m_gestureNN1(NULL),
+    //m_gestureNN1(NULL),
     m_gestureNN2(NULL),
     m_gestureNN3(NULL),
     m_gestArray()
@@ -130,7 +130,7 @@ MyMoveServer::MyMoveServer(QObject *parent) :
         m_padVect.push_back(zeroPoint);
     }
 
-    m_gestureNN1 = fann_create_from_file("/opt/mymoveserver/mymoves_nn1.net");
+    //m_gestureNN1 = fann_create_from_file("/opt/mymoveserver/mymoves_nn1.net");
     m_gestureNN2 = fann_create_from_file("/opt/mymoveserver/mymoves_nn2.net");
     m_gestureNN3 = fann_create_from_file("/opt/mymoveserver/mymoves_nn3.net");
 
@@ -139,7 +139,7 @@ MyMoveServer::MyMoveServer(QObject *parent) :
 
 MyMoveServer::~MyMoveServer()
 {
-    fann_destroy(m_gestureNN1);
+    //fann_destroy(m_gestureNN1);
     fann_destroy(m_gestureNN2);
     fann_destroy(m_gestureNN3);
 }
@@ -699,10 +699,10 @@ void MyMoveServer::recognizeWithNN()
     QList<Gesture>* gestureList = NULL;
     switch(m_fingerAmount)
     {
-        case 1:
+        /*case 1:
             network = m_gestureNN1;
             gestureList = &m_gesturesSingle;
-        break;
+        break;*/
 
         case 2:
             network = m_gestureNN2;

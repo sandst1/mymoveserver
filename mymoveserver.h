@@ -113,7 +113,7 @@ private:
     QOrientationSensor m_orientation;
     bool m_portrait;    
 
-    struct fann *m_gestureNN1;
+    //struct fann *m_gestureNN1;
     struct fann *m_gestureNN2;
     struct fann *m_gestureNN3;
     fann_type m_gestArray[MAX_GESTURE_LENGTH*2];
