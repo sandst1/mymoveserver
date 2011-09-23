@@ -27,7 +27,7 @@
 
 #include "mymoveserver.h"
 #include "eventhandler.h"
-#include <math.h>
+#include <qmath.h>
 
 #define PEARSON_THRESHOLD 0.75
 #define GESTURES_PATH "/home/user/MyDocs/moves"
@@ -36,6 +36,8 @@
 
 #define GESTURE_RECOGNITION_THRESHOLD 0.90
 #define FALSE_RECOGNITION_THRESHOLD 0.20
+#define PINCH_DETECTION_THRESHOLD 0.50
+#define FINGERS_TOGETHER_DISTANCE 200
 
 #define GESTURES_CONF_FILE "/home/user/MyDocs/.moves/mymoves.conf"
 
@@ -86,7 +88,11 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     //m_gestureNN1(NULL),
     m_gestureNN2(NULL),
     m_gestureNN3(NULL),
-    m_gestArray()
+    m_gestArray(),
+    m_f11(),
+    m_f12(),
+    m_f21(),
+    m_f22()
 {
     m_orientation.start();
 
@@ -200,6 +206,38 @@ void MyMoveServer::touchPress(QList<QPoint> points)
     }
 }
 
+double MyMoveServer::dist(const QPoint& p1, const QPoint& p2)
+{
+    return qSqrt(qPow(p1.x()-p2.x(),2)+qPow(p1.y()-p2.y(),2));
+}
+
+bool MyMoveServer::isPinch()
+{
+    qDebug("isPinch points f11 %d %d, f21 %d %d, f12 %d %d, f22 %d %d", m_f11.x(),m_f11.y(),m_f21.x(),m_f21.y(),m_f12.x(),m_f12.y(),m_f22.x(),m_f22.y());
+    double d1 = dist(m_f11, m_f21);
+    double d2 = dist(m_f12, m_f22);
+    qDebug("isPinch, lengths d1 %.2f and d2 %.2f", d1, d2);
+
+    double frac = 0.0;
+    double maxdist = 0.0;
+    if (d1 < d2)
+    {
+        frac = d1/d2;
+        //qDebug("startdist/enddist: %.2f", frac);
+        maxdist = d2;
+    }
+    else
+    {
+        frac = d2/d1;
+        maxdist = d1;
+        //qDebug("startdist/enddist: %.2f", frac);
+    }
+
+    qDebug("isPinch, frac %.2f", frac);
+    return (frac < PINCH_DETECTION_THRESHOLD && maxdist > FINGERS_TOGETHER_DISTANCE);
+
+}
+
 void MyMoveServer::touchRelease(QList<QPoint> points)
 { 
     switch (m_state)
@@ -210,6 +248,20 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
             {
                 m_gesture[i].append(points[i]);
             }
+
+            qDebug("points length %d", points.length());
+            // Check if releasing a dual-touch gesture
+            if (m_fingerAmount == 2)
+            {
+                m_f12 = m_gesture[0].at(m_gesture[0].length()-1);
+                m_f22 = m_gesture[1].at(m_gesture[1].length()-1);
+                if (isPinch())
+                {
+                    qDebug("Pinch/unpinch gesture detected!");
+                    return;
+                }
+            }
+
             // Recognition currently supported in portrait mode only
             if (m_portrait)
             {
@@ -267,6 +319,12 @@ void MyMoveServer::touchMove(QList<QPoint> points)
             if (points.length() > m_fingerAmount)
             {
                 m_fingerAmount = points.length();
+                // Check if this is a dual-touch gesture
+                if (m_fingerAmount == 2)
+                {
+                    m_f11 = points[0];
+                    m_f21 = points[1];
+                }
             }
             for (int i = 0; i < points.length(); i++)
             {
@@ -403,7 +461,7 @@ QPoint MyMoveServer::normalizeGesture(QList<QPoint>& gesture)
     int gh = 0;
     QPoint cp = getCentralPoint(gesture, gw, gh);
     int tmp = 0;
-    qDebug("gw: %d, gh: %d", gw, gh);
+    //qDebug("gw: %d, gh: %d", gw, gh);
 
     for (int i=0; i < gesture.length(); i++)
     {       
@@ -420,7 +478,7 @@ QPoint MyMoveServer::normalizeGesture(QList<QPoint>& gesture)
             gesture[i].ry() = tmp;
         }
 
-        qDebug("%d %d", gesture[i].x(), gesture[i].y());
+        //qDebug("%d %d", gesture[i].x(), gesture[i].y());
     }
     return cp;
 }
@@ -678,8 +736,21 @@ void MyMoveServer::formGestureVector()
 }
 
 void MyMoveServer::recognizeWithNN()
-{
-    qDebug("MyMoveServer::recognizeWithNN");
+{      
+    qDebug("MyMoveServer::recognizeWithNN: finger vectors 1 %d 2 %d 3 %d", m_gesture[0].length(),m_gesture[1].length(),m_gesture[2].length());
+
+    // Check if the user has been doing a two-finger gesture but
+    // has accidentally touched the screen with a third finger
+    if (m_fingerAmount == 3 && m_gesture[2].length() < 5)
+    {
+        m_fingerAmount = 2;
+    }
+    // Also check the same for 3-finger gesture
+    if (m_fingerAmount == 4 && m_gesture[3].length() < 5)
+    {
+        m_fingerAmount = 3;
+    }
+
     formGestureVector();
     for (int i = 0; i < MAX_GESTURE_LENGTH*2; i++)
     {
@@ -693,7 +764,6 @@ void MyMoveServer::recognizeWithNN()
         }
         //qDebug("Gest value %.2f", m_gestArray[i]);
     }
-
 
     struct fann* network = NULL;
     QList<Gesture>* gestureList = NULL;

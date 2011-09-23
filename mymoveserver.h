@@ -126,6 +126,14 @@ private:
     int m_gestureCount;
     void saveData();
 #endif
+    double dist(const QPoint& p1, const QPoint& p2);
+    bool isPinch();
+
+    QPoint m_f11;
+    QPoint m_f12;
+    QPoint m_f21;
+    QPoint m_f22;
+
 };
 
 #endif // MYMOVESERVER_H

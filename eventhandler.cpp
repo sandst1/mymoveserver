@@ -17,9 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-// The XRecord interaction of this class is based on XMacro
-// by Qball Cow: http://download.sarine.nl/xmacro/Description.html
-
 #include <QtDebug>
 #include "mymoveserver.h"
 #include "eventhandler.h"
@@ -45,7 +42,7 @@ void EventHandler::parseTouchPoints(XIValuatorState valuators, QList<QPoint>& po
         {
             x = (int)(*val++);
             y = (int)(*val);
-            qDebug("x %d y %d", x, y);
+            //qDebug("x %d y %d", x, y);
             points.push_back(QPoint(x,y));
         }
         else
@@ -137,7 +134,7 @@ void EventHandler::run()
                 {
                     XIDeviceEvent *e = (XIDeviceEvent*)(cookie->data);
 #ifndef ANN_TRAINING
-                    qDebug("XI_Motion, x: %.2f, y: %.2f", e->root_x, e->root_y);
+                    //qDebug("XI_Motion, x: %.2f, y: %.2f", e->root_x, e->root_y);
 #endif
                     QList<QPoint> points;
                     parseTouchPoints(e->valuators, points);
