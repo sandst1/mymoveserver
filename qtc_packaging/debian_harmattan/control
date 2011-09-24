@@ -8,7 +8,7 @@ Homepage: <insert the upstream URL, if relevant>
 
 Package: mymoveserver
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfann2
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 XSBC-Maemo-Display-Name: mymoveserver
