@@ -243,6 +243,11 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
             {
                 m_f12 = m_gesture[0].at(m_gesture[0].length()-1);
                 m_f22 = m_gesture[1].at(m_gesture[1].length()-1);
+                if (m_f12 == m_f22)
+                {
+                    if (m_gesture[0].length() > 2)
+                        m_f12 = m_gesture[0].at(m_gesture[0].length()-2);
+                }
                 if (isPinch())
                 {
                     qDebug("Pinch/unpinch gesture detected!");
