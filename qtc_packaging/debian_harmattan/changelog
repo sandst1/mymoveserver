@@ -1,5 +1,14 @@
+mymoveserver (0.0.2) unstable; urgency=low
+
+  * First user-friendly release. Most significant changes:
+    - 12 preconfigured multi-touch gestures
+    - Pinch recognition to avoid conflicting with normal usage
+    - Auto-start on boot and after installation
+
+ -- sandst1 <topi.santakivi@gmail.com>  Sat, 24 Sep 2011 18:12:52 +0300
+
 mymoveserver (0.0.1) unstable; urgency=low
 
   * Initial Release.
 
- -- Topi <topi@unknown>  Sun, 21 Aug 2011 23:13:21 +0300
+ -- sandst1 <topi.santakivi@gmail.com>  Sun, 21 Aug 2011 23:13:21 +0300
