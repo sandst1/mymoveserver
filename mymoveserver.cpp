@@ -524,6 +524,9 @@ void MyMoveServer::loadGestures()
     QFile gfile(GESTURES_CONF_FILE);
     gfile.open(QIODevice::ReadOnly);
     QTextStream stream(&gfile);
+    // Read the version
+    QString version = stream.readLine();
+
     QString line = stream.readLine();
     do
     {
