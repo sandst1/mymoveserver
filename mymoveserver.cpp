@@ -330,6 +330,11 @@ bool MyMoveServer::CentralPointLessThan(const CentralPoint& a, const CentralPoin
     return ((a.point.x() < b.point.x()) && (a.point.y() < b.point.y()));
 }
 
+int MyMoveServer::serverStatus()
+{
+    return (int)m_state;
+}
+
 void MyMoveServer::observeGestures()
 {    
     qDebug("MyMoveServer::observeGestures");

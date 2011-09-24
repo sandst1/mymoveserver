@@ -55,6 +55,7 @@ public slots:
     void touchMove(QList<QPoint> points);
 
 
+    int serverStatus();
     void observeGestures();
     void stopObserving();
 
