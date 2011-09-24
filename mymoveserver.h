@@ -54,8 +54,7 @@ public slots:
     void touchRelease(QList<QPoint> points);
     void touchMove(QList<QPoint> points);
 
-    void recordGesture(int x, int y, int w, int h);
-    void saveGesture(QString command);
+
     void observeGestures();
     void stopObserving();
 
@@ -89,8 +88,6 @@ private:
         IDLE,
         OBSERVING,
         RECOGNIZING,
-        RECORDING,
-        SAVING,
         COLLECTING_DATA
     };
 
@@ -104,11 +101,9 @@ private:
 
     static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
-    //QList<Gesture> m_knownGestures;
     QList<Gesture> m_gesturesSingle;
     QList<Gesture> m_gesturesDouble;
     QList<Gesture> m_gesturesTriple;
-    QRect m_recBox;
 
     QOrientationSensor m_orientation;
     bool m_portrait;    
