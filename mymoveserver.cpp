@@ -141,6 +141,10 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_gestureNN3 = fann_create_from_file("/opt/mymoveserver/mymoves_nn3.net");
 
     system("mkdir -p /home/user/MyDocs/.moves");
+
+#ifndef ANN_TRAINING
+    observeGestures();
+#endif
 }
 
 MyMoveServer::~MyMoveServer()
@@ -509,6 +513,11 @@ QPoint MyMoveServer::getCentralPoint(const QList<QPoint>& list, int& width, int&
 
 void MyMoveServer::loadGestures()
 {
+    if (!QFile::exists(GESTURES_CONF_FILE))
+    {
+        return;
+    }
+
     m_gesturesSingle.clear();
     m_gesturesDouble.clear();
     m_gesturesTriple.clear();

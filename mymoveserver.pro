@@ -38,6 +38,14 @@ nnetwork.path = /opt/mymoveserver
 nnetwork.files = data/mymoves_nn1.net data/mymoves_nn2.net data/mymoves_nn3.net
 INSTALLS += nnetwork
 
+initscript.path = /etc/init/apps
+initscript.files = mymoveserver.conf
+INSTALLS += initscript
+
+mymoveserversh.path = /opt/mymoveserver/bin
+mymoveserversh.files = mymoveserver.sh
+INSTALLS += mymoveserversh
+
 OTHER_FILES += \
     qtc_packaging/debian_harmattan/rules \
     qtc_packaging/debian_harmattan/README \
