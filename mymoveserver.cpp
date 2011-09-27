@@ -38,6 +38,7 @@
 #define FALSE_RECOGNITION_THRESHOLD 0.20
 #define PINCH_DETECTION_THRESHOLD 0.50
 #define FINGERS_TOGETHER_DISTANCE 200
+#define MIN_GESTURE_LENGTH 15
 
 #define GESTURES_CONF_FILE "/home/user/MyDocs/.moves/mymoves.conf"
 
@@ -160,6 +161,8 @@ void MyMoveServer::clearGesture()
     }
     m_gestVect.clear();
     m_fingerAmount = 0;
+    m_lastMoveIndex[0] = 0;
+    m_lastMoveIndex[1] = 0;
 }
 
 void MyMoveServer::touchPress(QList<QPoint> points)
@@ -167,7 +170,7 @@ void MyMoveServer::touchPress(QList<QPoint> points)
     switch (m_state)
     {
         case OBSERVING:
-            qDebug("Observing");
+            qDebug("touchPress, observing");
             clearGesture();
             for (int i = 0; i < points.length(); i++)
             {                
@@ -207,22 +210,19 @@ bool MyMoveServer::isPinch()
     qDebug("isPinch, lengths d1 %.2f and d2 %.2f", d1, d2);
 
     double frac = 0.0;
-    double maxdist = 0.0;
     if (d1 < d2)
     {
         frac = d1/d2;
         //qDebug("startdist/enddist: %.2f", frac);
-        maxdist = d2;
     }
     else
     {
         frac = d2/d1;
-        maxdist = d1;
         //qDebug("startdist/enddist: %.2f", frac);
     }
 
     qDebug("isPinch, frac %.2f", frac);
-    return (frac < PINCH_DETECTION_THRESHOLD && maxdist > FINGERS_TOGETHER_DISTANCE);
+    return (frac < PINCH_DETECTION_THRESHOLD);
 
 }
 
@@ -231,7 +231,7 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
     switch (m_state)
     {
         case OBSERVING:
-            qDebug("Observing");
+            qDebug("touchRelease, Observing");
             for (int i = 0; i < points.length(); i++)
             {
                 m_gesture[i].append(points[i]);
@@ -241,13 +241,8 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
             // Check if releasing a dual-touch gesture
             if (m_fingerAmount == 2)
             {
-                m_f12 = m_gesture[0].at(m_gesture[0].length()-1);
-                m_f22 = m_gesture[1].at(m_gesture[1].length()-1);
-                if (m_f12 == m_f22)
-                {
-                    if (m_gesture[0].length() > 2)
-                        m_f12 = m_gesture[0].at(m_gesture[0].length()-2);
-                }
+                m_f12 = m_gesture[0].at(m_lastMoveIndex[0]);
+                m_f22 = m_gesture[1].at(m_lastMoveIndex[1]);
                 if (isPinch())
                 {
                     qDebug("Pinch/unpinch gesture detected!");
@@ -295,20 +290,23 @@ void MyMoveServer::touchMove(QList<QPoint> points)
     switch (m_state)
     {
         case OBSERVING:
-            qDebug("Observing");
+            //qDebug("touchMove, observing, points: %d", points.length());
             if (points.length() > m_fingerAmount)
-            {
-                m_fingerAmount = points.length();
+            {                
+                m_fingerAmount = points.length();                
                 // Check if this is a dual-touch gesture
                 if (m_fingerAmount == 2)
                 {
                     m_f11 = points[0];
-                    m_f21 = points[1];
+                    m_f21 = points[1];                    
                 }
             }
+
             for (int i = 0; i < points.length(); i++)
-            {
+            {                
                 m_gesture[i].append(points[i]);
+                if (points.length() == 2)
+                    m_lastMoveIndex[i] = m_gesture[i].length()-1;
             }
         break;
 
@@ -611,6 +609,13 @@ void MyMoveServer::recognizeWithNN()
     if (m_fingerAmount == 4 && m_gesture[3].length() < 5)
     {
         m_fingerAmount = 3;
+    }
+
+    if (m_gesture[0].length() + m_gesture[1].length() <= MIN_GESTURE_LENGTH)
+    {
+        qDebug("Gesture vector is too short");
+        m_state = OBSERVING;
+        return;
     }
 
     formGestureVector();

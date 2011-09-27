@@ -128,7 +128,9 @@ private:
     QPoint m_f11;
     QPoint m_f12;
     QPoint m_f21;
-    QPoint m_f22;
+    QPoint m_f22;  
+
+    int m_lastMoveIndex[2];
 
 };
 
