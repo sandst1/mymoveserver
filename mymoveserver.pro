@@ -12,13 +12,15 @@ TARGET = mymoveserver
 CONFIG   += console
 CONFIG   -= app_bundle
 
+CONFIG += link_prl
+
 CONFIG += mobility
 MOBILITY += sensors
 
 TEMPLATE = app
 
 INCLUDEPATH += /usr/X11R6/include
-LIBS += -lXi -lX11 -lfann
+LIBS += -lXi -lX11 /usr/lib/libfann.a
 
 #DEFINES += ANN_TRAINING
 
@@ -32,7 +34,7 @@ unix:!symbian:!maemo5 {
 }
 
 nnetwork.path = /opt/mymoves
-nnetwork.files = data/mymoves_nn1.net data/mymoves_nn2.net data/mymoves_nn3.net
+nnetwork.files = data/mymoves_nn2.net data/mymoves_nn3.net
 INSTALLS += nnetwork
 
 initscript.path = /etc/init/apps
