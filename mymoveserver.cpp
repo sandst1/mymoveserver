@@ -135,9 +135,9 @@ MyMoveServer::MyMoveServer(QObject *parent) :
         m_padVect.push_back(zeroPoint);
     }
 
-    //m_gestureNN1 = fann_create_from_file("/opt/mymoveserver/mymoves_nn1.net");
-    m_gestureNN2 = fann_create_from_file("/opt/mymoveserver/mymoves_nn2.net");
-    m_gestureNN3 = fann_create_from_file("/opt/mymoveserver/mymoves_nn3.net");
+    //m_gestureNN1 = fann_create_from_file("/opt/mymoves/mymoves_nn1.net");
+    m_gestureNN2 = fann_create_from_file("/opt/mymoves/mymoves_nn2.net");
+    m_gestureNN3 = fann_create_from_file("/opt/mymoves/mymoves_nn3.net");
 
     system("mkdir -p /home/user/MyDocs/.moves");
 

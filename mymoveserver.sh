@@ -2,4 +2,4 @@
 
 echo "Starting mymoveserver"
 
-exec /opt/mymoveserver/bin/mymoveserver
+exec /opt/mymoves/bin/mymoveserver

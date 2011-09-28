@@ -27,11 +27,11 @@ SOURCES += main.cpp \
     eventhandler.cpp
 
 unix:!symbian:!maemo5 {
-    target.path = /opt/mymoveserver/bin
+    target.path = /opt/mymoves/bin
     INSTALLS += target
 }
 
-nnetwork.path = /opt/mymoveserver
+nnetwork.path = /opt/mymoves
 nnetwork.files = data/mymoves_nn1.net data/mymoves_nn2.net data/mymoves_nn3.net
 INSTALLS += nnetwork
 
@@ -39,7 +39,7 @@ initscript.path = /etc/init/apps
 initscript.files = mymoveserver.conf
 INSTALLS += initscript
 
-mymoveserversh.path = /opt/mymoveserver/bin
+mymoveserversh.path = /opt/mymoves/bin
 mymoveserversh.files = mymoveserver.sh
 INSTALLS += mymoveserversh
 
