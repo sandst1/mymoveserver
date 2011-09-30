@@ -30,8 +30,7 @@
 #include <qmath.h>
 
 #define PEARSON_THRESHOLD 0.75
-#define GESTURES_PATH "/home/user/MyDocs/moves"
-#define NAME_FILTER "mymove*"
+#define GESTURES_PATH "/home/user/.config"
 #define MAX_GESTURE_LENGTH_DIFF 0.4
 
 #define GESTURE_RECOGNITION_THRESHOLD 0.90
@@ -40,7 +39,7 @@
 #define FINGERS_TOGETHER_DISTANCE 200
 #define MIN_GESTURE_LENGTH 15
 
-#define GESTURES_CONF_FILE "/home/user/MyDocs/.moves/mymoves.conf"
+#define GESTURES_CONF_FILE "/home/user/.config/mymoves.conf"
 
 #ifdef ANN_TRAINING
 int MyMoveServer::m_gestureNum = -1;
@@ -138,8 +137,6 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     //m_gestureNN1 = fann_create_from_file("/opt/mymoves/mymoves_nn1.net");
     m_gestureNN2 = fann_create_from_file("/opt/mymoves/mymoves_nn2.net");
     m_gestureNN3 = fann_create_from_file("/opt/mymoves/mymoves_nn3.net");
-
-    system("mkdir -p /home/user/MyDocs/.moves");
 
 #ifndef ANN_TRAINING
     observeGestures();
