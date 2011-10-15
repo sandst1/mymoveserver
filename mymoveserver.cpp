@@ -33,8 +33,8 @@
 #define GESTURES_PATH "/home/user/.config"
 #define MAX_GESTURE_LENGTH_DIFF 0.4
 
-#define GESTURE_RECOGNITION_THRESHOLD 0.90
-#define FALSE_RECOGNITION_THRESHOLD 0.20
+#define GESTURE_RECOGNITION_THRESHOLD 0.80
+#define FALSE_RECOGNITION_THRESHOLD 0.25
 #define PINCH_DETECTION_THRESHOLD 0.50
 #define FINGERS_TOGETHER_DISTANCE 200
 #define MIN_GESTURE_LENGTH 15
@@ -574,6 +574,18 @@ void MyMoveServer::formGestureVector()
     {
         m_gestVect.append(m_gesture[centralPoints[i].index]);
     }
+
+    QList<QPoint> diff;
+
+    // Calculate the differential of the vector and append
+    for (int i = 1; i < m_gestVect.length(); i++)
+    {
+        diff.append(QPoint(m_gestVect.at(i).x()-m_gestVect.at(i-1).x(),
+                           m_gestVect.at(i).y()-m_gestVect.at(i-1).y()));
+    }
+
+    m_gestVect.append(diff);
+
 
     qDebug("Gest vector length: %d", m_gestVect.length());
 

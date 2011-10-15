@@ -20,6 +20,7 @@ MOBILITY += sensors
 TEMPLATE = app
 
 INCLUDEPATH += /usr/X11R6/include
+#LIBS += -lXi -lX11 /home/topi/QtSDK/Madde/sysroots/harmattan-meego-arm-sysroot-1122-slim/usr/lib/libfann.a
 LIBS += -lXi -lX11 /usr/lib/libfann.a
 
 #DEFINES += ANN_TRAINING
