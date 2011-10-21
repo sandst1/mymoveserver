@@ -22,7 +22,7 @@ int main()
 //					  train_data->num_input, num_neurons_hidden, train_data->num_output);
 
     //ann = fann_create_standard(500, 2, 50, 50, 21);
-    unsigned int layers[4] = {150, 70, 30, 6};
+    unsigned int layers[4] = {300, 100, 36, 12};
     ann = fann_create_standard_array(4, layers);
 	printf("Training network.\n");
 
