@@ -31,7 +31,8 @@
 QTM_USE_NAMESPACE
 
 #define MAX_FINGERS 6
-#define MAX_GESTURE_LENGTH 150
+#define MAX_GESTURE_LENGTH_TWOFINGERS 150
+#define MAX_GESTURE_LENGTH_THREEFINGERS 300
 
 class MyMoveServer : public QObject
 {
@@ -112,7 +113,8 @@ private:
     //struct fann *m_gestureNN1;
     struct fann *m_gestureNN2;
     struct fann *m_gestureNN3;
-    fann_type m_gestArray[MAX_GESTURE_LENGTH*2];
+    fann_type m_gestArray2[MAX_GESTURE_LENGTH_TWOFINGERS*2];
+    fann_type m_gestArray3[MAX_GESTURE_LENGTH_THREEFINGERS*2];
 
 #ifdef ANN_TRAINING
     static int m_gestureNum;

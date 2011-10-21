@@ -86,7 +86,8 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     //m_gestureNN1(NULL),
     m_gestureNN2(NULL),
     m_gestureNN3(NULL),
-    m_gestArray(),
+    m_gestArray2(),
+    m_gestArray3(),
     m_f11(),
     m_f12(),
     m_f21(),
@@ -126,10 +127,10 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     bus.registerService("org.sandst1.mymoves");
     m_eh.start();
 
-    m_gestVect.reserve(MAX_GESTURE_LENGTH);
+    m_gestVect.reserve(MAX_GESTURE_LENGTH_THREEFINGERS);
 
     QPoint zeroPoint(0,0);
-    for (int i = 0; i < MAX_GESTURE_LENGTH; i++)
+    for (int i = 0; i < MAX_GESTURE_LENGTH_THREEFINGERS; i++)
     {
         m_padVect.push_back(zeroPoint);
     }
@@ -263,8 +264,6 @@ void MyMoveServer::touchRelease(QList<QPoint> points)
             {
                 m_gesture[i].append(points[i]);
             }
-            qDebug("trying to recognize the gesture");
-            m_state = RECOGNIZING;
             // Collect the data
             saveData();
         break;
@@ -308,6 +307,16 @@ void MyMoveServer::touchMove(QList<QPoint> points)
         break;
 
         case COLLECTING_DATA:
+            if (points.length() > m_fingerAmount)
+            {
+                m_fingerAmount = points.length();
+                // Check if this is a dual-touch gesture
+                if (m_fingerAmount == 2)
+                {
+                    m_f11 = points[0];
+                    m_f21 = points[1];
+                }
+            }
             for (int i = 0; i < points.length(); i++)
             {
                 m_gesture[i].append(points[i]);
@@ -589,18 +598,39 @@ void MyMoveServer::formGestureVector()
 
     qDebug("Gest vector length: %d", m_gestVect.length());
 
-    if (m_gestVect.length() < MAX_GESTURE_LENGTH)
+    if (m_fingerAmount == 2)
     {
-        qDebug("Padding gesture vector to %d", MAX_GESTURE_LENGTH);
-        int padding = MAX_GESTURE_LENGTH - m_gestVect.length();
-        m_gestVect.append(m_padVect.mid(0, padding));
-        qDebug("Current length %d", m_gestVect.length());
+
+        if (m_gestVect.length() < MAX_GESTURE_LENGTH_TWOFINGERS)
+        {
+            qDebug("Padding gesture vector to %d", MAX_GESTURE_LENGTH_TWOFINGERS);
+            int padding = MAX_GESTURE_LENGTH_TWOFINGERS - m_gestVect.length();
+            m_gestVect.append(m_padVect.mid(0, padding));
+            qDebug("Current length %d", m_gestVect.length());
+        }
+        else if (m_gestVect.length() > MAX_GESTURE_LENGTH_TWOFINGERS)
+        {
+            qDebug("Capping gesture vector to %d", MAX_GESTURE_LENGTH_TWOFINGERS);
+            m_gestVect = m_gestVect.mid(0, MAX_GESTURE_LENGTH_TWOFINGERS);
+            qDebug("Current length %d", m_gestVect.length());
+        }
     }
-    else if (m_gestVect.length() > MAX_GESTURE_LENGTH)
+    else if (m_fingerAmount == 3)
     {
-        qDebug("Capping gesture vector to %d", MAX_GESTURE_LENGTH);
-        m_gestVect = m_gestVect.mid(0, MAX_GESTURE_LENGTH);
-        qDebug("Current length %d", m_gestVect.length());
+
+        if (m_gestVect.length() < MAX_GESTURE_LENGTH_THREEFINGERS)
+        {
+            qDebug("Padding gesture vector to %d", MAX_GESTURE_LENGTH_THREEFINGERS);
+            int padding = MAX_GESTURE_LENGTH_THREEFINGERS - m_gestVect.length();
+            m_gestVect.append(m_padVect.mid(0, padding));
+            qDebug("Current length %d", m_gestVect.length());
+        }
+        else if (m_gestVect.length() > MAX_GESTURE_LENGTH_THREEFINGERS)
+        {
+            qDebug("Capping gesture vector to %d", MAX_GESTURE_LENGTH_THREEFINGERS);
+            m_gestVect = m_gestVect.mid(0, MAX_GESTURE_LENGTH_THREEFINGERS);
+            qDebug("Current length %d", m_gestVect.length());
+        }
     }
 }
 
@@ -628,18 +658,39 @@ void MyMoveServer::recognizeWithNN()
     }
 
     formGestureVector();
-    for (int i = 0; i < MAX_GESTURE_LENGTH*2; i++)
+
+    if (m_fingerAmount == 2)
     {
-        if (i%2)
+        for (int i = 0; i < MAX_GESTURE_LENGTH_TWOFINGERS*2; i++)
         {
-            m_gestArray[i] = m_gestVect[i/2].y();
+            if (i%2)
+            {
+                m_gestArray2[i] = m_gestVect[i/2].y();
+            }
+            else
+            {
+                m_gestArray2[i] = m_gestVect[i/2].x();
+            }
+            //qDebug("Gest value %.2f", m_gestArray[i]);
         }
-        else
-        {
-            m_gestArray[i] = m_gestVect[i/2].x();
-        }
-        //qDebug("Gest value %.2f", m_gestArray[i]);
     }
+    else if (m_fingerAmount == 3)
+    {
+        for (int i = 0; i < MAX_GESTURE_LENGTH_THREEFINGERS*2; i++)
+        {
+            if (i%2)
+            {
+                m_gestArray3[i] = m_gestVect[i/2].y();
+            }
+            else
+            {
+                m_gestArray3[i] = m_gestVect[i/2].x();
+            }
+            //qDebug("Gest value %.2f", m_gestArray[i]);
+        }
+    }
+
+
 
     struct fann* network = NULL;
     QList<Gesture>* gestureList = NULL;
@@ -668,7 +719,13 @@ void MyMoveServer::recognizeWithNN()
     }
 
     qDebug("Using neural network %d", m_fingerAmount);
-    fann_type* results = fann_run(network, m_gestArray);
+    fann_type* results = NULL;
+
+    if (m_fingerAmount == 2)
+        results = fann_run(network, m_gestArray2);
+    else if (m_fingerAmount == 3)
+        results = fann_run(network, m_gestArray3);
+
     int outputs = fann_get_num_output(network);
 
     int matchingIdx = -1;
