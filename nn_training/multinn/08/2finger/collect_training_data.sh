@@ -3,8 +3,8 @@
 amount=12
 samples=15
 
-for x in `seq 0 $(($amount-1))`
-#for x in `seq 9 11`
+#for x in `seq 0 $(($amount-1))`
+for x in `seq 6 6`
 do
     /opt/mymoves/bin/mymoveserver $x $amount $samples
     cat gesturedata$x >> ann_training_data
