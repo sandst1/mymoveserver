@@ -15,14 +15,14 @@ int main()
 	printf("Creating network.\n");
 
 	train_data = fann_read_train_from_file("ann_training_data");
-    // Using incremental training -> shuffle training data    
+    // Using incremental training -> shuffle training data
     fann_shuffle_train_data(train_data);
 
 //	ann = fann_create_standard(num_layers,
 //					  train_data->num_input, num_neurons_hidden, train_data->num_output);
 
     //ann = fann_create_standard(500, 2, 50, 50, 21);
-    unsigned int layers[4] = {600, 100, 24, 12};
+    unsigned int layers[4] = {200, 75, 25, 12};
     ann = fann_create_standard_array(4, layers);
 	printf("Training network.\n");
 
