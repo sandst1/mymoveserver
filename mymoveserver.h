@@ -31,8 +31,10 @@
 QTM_USE_NAMESPACE
 
 #define MAX_FINGERS 6
-#define MAX_GESTURE_LENGTH_TWOFINGERS 150
-#define MAX_GESTURE_LENGTH_THREEFINGERS 300
+//#define MAX_GESTURE_LENGTH_TWOFINGERS 150
+//#define MAX_GESTURE_LENGTH_THREEFINGERS 300
+
+#define FEATURE_VECTOR_LENGTH 200
 
 class MyMoveServer : public QObject
 {
@@ -82,8 +84,10 @@ private:
     void loadGestures();
     void recognizeGesture();    
     double pearson(const QList<QPoint>& gx, const QList<QPoint>& gy);
-    void formGestureVector();
+    void formFeatureVector();
     void recognizeWithNN();
+
+    void resetFeatureVector();
 
 
     enum State {
@@ -98,8 +102,8 @@ private:
     QList<QPoint> m_gesture[MAX_FINGERS];
     int m_fingerAmount;
 
-    QList<QPoint> m_gestVect;
-    QList<QPoint> m_padVect;
+    //QList<QPoint> m_gestVect;
+    //QList<QPoint> m_padVect;
 
     static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
@@ -113,8 +117,12 @@ private:
     //struct fann *m_gestureNN1;
     struct fann *m_gestureNN2;
     struct fann *m_gestureNN3;
-    fann_type m_gestArray2[MAX_GESTURE_LENGTH_TWOFINGERS*2];
-    fann_type m_gestArray3[MAX_GESTURE_LENGTH_THREEFINGERS*2];
+    //fann_type m_gestArray2[MAX_GESTURE_LENGTH_TWOFINGERS*2];
+    //fann_type m_gestArray3[MAX_GESTURE_LENGTH_THREEFINGERS*2];
+    fann_type m_featureVector[FEATURE_VECTOR_LENGTH];
+
+    int m_featureMatrix[FEATURE_VECTOR_LENGTH];
+    int m_diffMatrix[FEATURE_VECTOR_LENGTH];
 
 #ifdef ANN_TRAINING
     static int m_gestureNum;
