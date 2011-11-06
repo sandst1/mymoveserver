@@ -36,6 +36,25 @@ then
         rm $mmconf
         mv $mmconf.new $mmconf
     fi
+
+    if [ `head -n1 $mmconf` = "1" ]
+    then
+        echo 2 > $mmconf.new
+        head -5 $mmconf | tail -4 >> $mmconf.new
+        echo "d12######" >> $mmconf.new
+        echo "d13######" >> $mmconf.new
+        echo "d14######" >> $mmconf.new
+        echo "d15######" >> $mmconf.new
+        head -17 $mmconf | tail -12 >> $mmconf.new
+        echo "t12######" >> $mmconf.new
+        echo "t13######" >> $mmconf.new
+        echo "t14######" >> $mmconf.new
+        echo "t15######" >> $mmconf.new
+        head -25 $mmconf | tail -8 >> $mmconf.new
+
+        rm $mmconf
+        mv $mmconf.new $mmconf
+    fi
 fi
 
 echo "Starting mymoveserver"
