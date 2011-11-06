@@ -22,6 +22,7 @@
 #include <QOrientationSensor>
 #include <QFile>
 #include <QList>
+#include <QMap>
 #include <QObject>
 #include <QPoint>
 #include <QRect>
@@ -31,8 +32,6 @@
 QTM_USE_NAMESPACE
 
 #define MAX_FINGERS 6
-//#define MAX_GESTURE_LENGTH_TWOFINGERS 150
-//#define MAX_GESTURE_LENGTH_THREEFINGERS 300
 
 #define FEATURE_VECTOR_LENGTH 200
 
@@ -102,23 +101,16 @@ private:
     QList<QPoint> m_gesture[MAX_FINGERS];
     int m_fingerAmount;
 
-    //QList<QPoint> m_gestVect;
-    //QList<QPoint> m_padVect;
-
     static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
-    QList<Gesture> m_gesturesSingle;
-    QList<Gesture> m_gesturesDouble;
-    QList<Gesture> m_gesturesTriple;
+    QMap<int, Gesture> m_gesturesDouble;
+    QMap<int, Gesture> m_gesturesTriple;
 
     QOrientationSensor m_orientation;
     bool m_portrait;    
 
-    //struct fann *m_gestureNN1;
     struct fann *m_gestureNN2;
     struct fann *m_gestureNN3;
-    //fann_type m_gestArray2[MAX_GESTURE_LENGTH_TWOFINGERS*2];
-    //fann_type m_gestArray3[MAX_GESTURE_LENGTH_THREEFINGERS*2];
     fann_type m_featureVector[FEATURE_VECTOR_LENGTH];
 
     int m_featureMatrix[FEATURE_VECTOR_LENGTH];

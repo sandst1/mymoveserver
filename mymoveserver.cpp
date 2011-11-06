@@ -77,12 +77,10 @@ MyMoveServer::MyMoveServer(QObject *parent) :
 #endif
     m_eh(this),
     m_gesture(),
-    m_gesturesSingle(),
     m_gesturesDouble(),
     m_gesturesTriple(),
     m_orientation(),
     m_portrait(true),
-    //m_gestureNN1(NULL),
     m_gestureNN2(NULL),
     m_gestureNN3(NULL),
     m_featureVector(),
@@ -129,7 +127,6 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     bus.registerService("org.sandst1.mymoves");
     m_eh.start();
 
-    //m_gestureNN1 = fann_create_from_file("/opt/mymoves/mymoves_nn1.net");
     m_gestureNN2 = fann_create_from_file("/opt/mymoves/mymoves_nn2.net");
     m_gestureNN3 = fann_create_from_file("/opt/mymoves/mymoves_nn3.net");
 
@@ -140,7 +137,6 @@ MyMoveServer::MyMoveServer(QObject *parent) :
 
 MyMoveServer::~MyMoveServer()
 {
-    //fann_destroy(m_gestureNN1);
     fann_destroy(m_gestureNN2);
     fann_destroy(m_gestureNN3);
 }
@@ -151,7 +147,7 @@ void MyMoveServer::clearGesture()
     {
         m_gesture[i].clear();
     }
-    //m_gestVect.clear();
+
     m_fingerAmount = 0;
     m_lastMoveIndex[0] = 0;
     m_lastMoveIndex[1] = 0;
@@ -434,7 +430,6 @@ void MyMoveServer::loadGestures()
         return;
     }
 
-    m_gesturesSingle.clear();
     m_gesturesDouble.clear();
     m_gesturesTriple.clear();
     QFile gfile(GESTURES_CONF_FILE);
@@ -468,27 +463,18 @@ void MyMoveServer::loadGestures()
 
         Gesture gest;
         gest.command = command;
+        int idnum = id.mid(1, id.length()-1).toInt();
+
         if (id.at(0) == 'd')
         {
             qDebug() << "Appending to double gestures: " << id << ", " << command;
-            m_gesturesDouble.append(gest);
+            m_gesturesDouble[idnum] = gest;
         }
         else if (id.at(0) == 't')
         {
             qDebug() << "Appending to triple gestures: " << id << ", " << command;
-            m_gesturesTriple.append(gest);
+            m_gesturesTriple[idnum] = gest;
         }
-        else
-        {
-            qDebug() << "Appending to single gestures: " << id << ", " << command;
-            m_gesturesSingle.append(gest);
-        }
-
-        /*GestureItem* item = new GestureItem(id, image, this);
-        item->setApp(app);
-        item->setCommand(command);
-        item->setReserved(reserved);
-        this->appendRow(item);*/
 
         line = stream.readLine();
     } while (!line.isEmpty());
@@ -647,14 +633,9 @@ void MyMoveServer::recognizeWithNN()
     formFeatureVector();
 
     struct fann* network = NULL;
-    QList<Gesture>* gestureList = NULL;
+    QMap<int, Gesture>* gestureList = NULL;
     switch(m_fingerAmount)
     {
-        /*case 1:
-            network = m_gestureNN1;
-            gestureList = &m_gesturesSingle;
-        break;*/
-
         case 2:
             network = m_gestureNN2;
             gestureList = &m_gesturesDouble;
@@ -695,14 +676,14 @@ void MyMoveServer::recognizeWithNN()
         qDebug("Gesture %d, result: %.2f", i, results[i]);
     }
 
-    QString command("");
+    QString command = "";
     if (matches == 1 && !falseRecognitions)
     {
         qDebug("Found a single match: %d", matchingIdx);
         if (matchingIdx < gestureList->size())
         {
-            qDebug() << "Command to execute: " << gestureList->at(matchingIdx).command;
-            command = gestureList->at(matchingIdx).command;
+            qDebug() << "Command to execute: " << (*gestureList)[matchingIdx].command;
+            command = (*gestureList)[matchingIdx].command;
         }
     }
 
