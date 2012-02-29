@@ -78,11 +78,11 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     m_eh(this),
     m_gesture(),
     m_gesturesDouble(),
-    m_gesturesTriple(),
+    //m_gesturesTriple(),
     m_orientation(),
     m_portrait(true),
     m_gestureNN2(NULL),
-    m_gestureNN3(NULL),
+    //m_gestureNN3(NULL),
     m_featureVector(),
     m_featureMatrix(),
     m_diffMatrix(),
@@ -127,8 +127,9 @@ MyMoveServer::MyMoveServer(QObject *parent) :
     bus.registerService("org.sandst1.mymoves");
     m_eh.start();
 
-    m_gestureNN2 = fann_create_from_file("/opt/mymoves/mymoves_nn2.net");
-    m_gestureNN3 = fann_create_from_file("/opt/mymoves/mymoves_nn3.net");
+    m_gestureNN2 = fann_create_from_file("/opt/mymoves/mymoves_simple.net");
+    //m_gestureNN2 = fann_create_from_file("/opt/mymoves/mymoves_nn2.net");
+    //m_gestureNN3 = fann_create_from_file("/opt/mymoves/mymoves_nn3.net");
 
 #ifndef ANN_TRAINING
     observeGestures();
@@ -138,7 +139,7 @@ MyMoveServer::MyMoveServer(QObject *parent) :
 MyMoveServer::~MyMoveServer()
 {
     fann_destroy(m_gestureNN2);
-    fann_destroy(m_gestureNN3);
+    //fann_destroy(m_gestureNN3);
 }
 
 void MyMoveServer::clearGesture()
@@ -431,7 +432,7 @@ void MyMoveServer::loadGestures()
     }
 
     m_gesturesDouble.clear();
-    m_gesturesTriple.clear();
+    //m_gesturesTriple.clear();
     QFile gfile(GESTURES_CONF_FILE);
     gfile.open(QIODevice::ReadOnly);
     QTextStream stream(&gfile);
@@ -470,11 +471,11 @@ void MyMoveServer::loadGestures()
             qDebug() << "Appending to double gestures: " << id << ", " << command;
             m_gesturesDouble[idnum] = gest;
         }
-        else if (id.at(0) == 't')
-        {
-            qDebug() << "Appending to triple gestures: " << id << ", " << command;
-            m_gesturesTriple[idnum] = gest;
-        }
+        //else if (id.at(0) == 't')
+        //{
+            //qDebug() << "Appending to triple gestures: " << id << ", " << command;
+            //m_gesturesTriple[idnum] = gest;
+        //}
 
         line = stream.readLine();
     } while (!line.isEmpty());
@@ -623,9 +624,9 @@ void MyMoveServer::recognizeWithNN()
         m_fingerAmount = 3;
     }
 
-    if (m_gesture[0].length() + m_gesture[1].length() <= MIN_GESTURE_LENGTH)
+    if (m_fingerAmount == 3 || m_gesture[0].length() + m_gesture[1].length() <= MIN_GESTURE_LENGTH)
     {
-        qDebug("Gesture vector is too short");
+        qDebug("Finger amount not supported or gesture vector is too short");
         m_state = OBSERVING;
         return;
     }
@@ -641,10 +642,10 @@ void MyMoveServer::recognizeWithNN()
             gestureList = &m_gesturesDouble;
         break;
 
-        case 3:
-            network = m_gestureNN3;
-            gestureList = &m_gesturesTriple;
-        break;
+        //case 3:
+            //network = m_gestureNN3;
+            //gestureList = &m_gesturesTriple;
+        //break;
 
         default:
             qDebug("Amount of fingers not supported, returning");

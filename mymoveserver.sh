@@ -55,6 +55,18 @@ then
         rm $mmconf
         mv $mmconf.new $mmconf
     fi
+
+    if [ `head -n1 $mmconf` = "2" ]
+    then
+        echo 3 > $mmconf.new
+        head -9 $mmconf | tail -8 >> $mmconf.new
+        rm $mmconf
+        mv $mmconf.new $mmconf
+        sed -i 's/d12###/d4###/g' $mmconf
+        sed -i 's/d13###/d5###/g' $mmconf
+        sed -i 's/d14###/d6###/g' $mmconf
+        sed -i 's/d15###/d7###/g' $mmconf
+    fi
 fi
 
 echo "Starting mymoveserver"
