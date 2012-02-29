@@ -69,6 +69,17 @@ then
     fi
 fi
 
+if [ ! -f /home/user/.config/mymovescripts/scripts_installed ]
+then
+    echo "Installing MyMoves scripts"
+    mkdir -p /home/user/.config/mymovescripts
+    for mscript in /opt/mymoves/mymovescripts/*.sh
+    do
+        cat $mscript > /home/user/.config/mymovescripts/`basename $mscript`
+    done;
+    touch /home/user/.config/mymovescripts/scripts_installed
+fi
+
 echo "Starting mymoveserver"
 
 exec /opt/mymoves/bin/mymoveserver

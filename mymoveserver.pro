@@ -46,6 +46,10 @@ mymoveserversh.path = /opt/mymoves/bin
 mymoveserversh.files = mymoveserver.sh
 INSTALLS += mymoveserversh
 
+scripts.path = /opt/mymoves/mymovescripts
+scripts.files = scripts/*
+INSTALLS += scripts
+
 OTHER_FILES += \
     qtc_packaging/debian_harmattan/rules \
     qtc_packaging/debian_harmattan/README \
