@@ -26,6 +26,7 @@
 #include <QObject>
 #include <QPoint>
 #include <QRect>
+#include "feedbackplayer.h"
 #include "eventhandler.h"
 #include <floatfann.h>
 
@@ -55,7 +56,6 @@ public slots:
     void touchPress(QList<QPoint> points);
     void touchRelease(QList<QPoint> points);
     void touchMove(QList<QPoint> points);
-
 
     int serverStatus();
     void observeGestures();
@@ -134,6 +134,7 @@ private:
 
     int m_lastMoveIndex[2];
 
+    FeedbackPlayer feedbackPlayer;
 };
 
 #endif // MYMOVESERVER_H

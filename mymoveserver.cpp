@@ -134,6 +134,8 @@ MyMoveServer::MyMoveServer(QObject *parent) :
 #ifndef ANN_TRAINING
     observeGestures();
 #endif
+
+    feedbackPlayer.init(QString("mymoveserver"));
 }
 
 MyMoveServer::~MyMoveServer()
@@ -691,6 +693,7 @@ void MyMoveServer::recognizeWithNN()
     m_state = OBSERVING;
     if (command.length() > 0)
     {
+        feedbackPlayer.playFeedback(QString("priority2_gesture"));
         command = command + " &";
         system(command.toLatin1());
     }
