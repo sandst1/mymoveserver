@@ -36,7 +36,7 @@ unix:!symbian:!maemo5 {
 }
 
 nnetwork.path = /opt/mymoves
-nnetwork.files = data/mymoves_simple.net
+nnetwork.files += data/mymoves*.net
 INSTALLS += nnetwork
 
 initscript.path = /etc/init/apps

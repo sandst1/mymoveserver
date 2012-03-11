@@ -67,6 +67,22 @@ then
         sed -i 's/d14###/d6###/g' $mmconf
         sed -i 's/d15###/d7###/g' $mmconf
     fi
+
+    if [ `head -n1 $mmconf` = "3" ]
+    then
+        echo 4 > $mmconf.new
+        head -9 $mmconf | tail -8 >> $mmconf.new
+        echo "t0######" >> $mmconf.new
+        echo "t1######" >> $mmconf.new
+        echo "t2######" >> $mmconf.new
+        echo "t3######" >> $mmconf.new
+        echo "t4######" >> $mmconf.new
+        echo "t5######" >> $mmconf.new
+        echo "t6######" >> $mmconf.new
+        echo "t7######" >> $mmconf.new
+        rm $mmconf
+        mv $mmconf.new $mmconf
+    fi
 fi
 
 if [ ! -f /home/user/.config/mymovescripts/scripts_installed ]

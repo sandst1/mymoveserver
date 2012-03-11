@@ -104,13 +104,13 @@ private:
     static bool CentralPointLessThan(const CentralPoint& a, const CentralPoint& b);
 
     QMap<int, Gesture> m_gesturesDouble;
-    //QMap<int, Gesture> m_gesturesTriple;
+    QMap<int, Gesture> m_gesturesTriple;
 
     QOrientationSensor m_orientation;
     bool m_portrait;    
 
     struct fann *m_gestureNN2;
-    //struct fann *m_gestureNN3;
+    struct fann *m_gestureNN3;
     fann_type m_featureVector[FEATURE_VECTOR_LENGTH];
 
     int m_featureMatrix[FEATURE_VECTOR_LENGTH];
