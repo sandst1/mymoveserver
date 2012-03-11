@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core dbus
+QT       += core dbus network
 
 QT       -= gui
 
@@ -27,7 +27,8 @@ LIBS += -lXi -lX11 /usr/lib/libfann.a
 
 SOURCES += main.cpp \
     mymoveserver.cpp \
-    eventhandler.cpp
+    eventhandler.cpp \
+    feedbackplayer.cpp
 
 unix:!symbian:!maemo5 {
     target.path = /opt/mymoves/bin
@@ -50,6 +51,10 @@ scripts.path = /opt/mymoves/mymovescripts
 scripts.files = scripts/*
 INSTALLS += scripts
 
+feedback.path = /usr/share/themes/base/meegotouch/mymoveserver/feedbacks/priority2_gesture
+feedback.files = feedbacks/*
+INSTALLS += feedback
+
 OTHER_FILES += \
     qtc_packaging/debian_harmattan/rules \
     qtc_packaging/debian_harmattan/README \
@@ -60,7 +65,10 @@ OTHER_FILES += \
 
 HEADERS += \
     mymoveserver.h \
-    eventhandler.h
+    eventhandler.h \
+    feedbackplayer.h
 
 RESOURCES += \
     resources.qrc
+
+
